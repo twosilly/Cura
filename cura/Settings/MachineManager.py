@@ -1265,3 +1265,16 @@ class MachineManager(QObject):
         stacks = ExtruderManager.getInstance().getActiveExtruderStacks()
         stacks.append(self._global_container_stack)
         return [ s.containersChanged for s in stacks ]
+
+    @pyqtSlot(str, result = bool)
+    def hasMachine(self, machine_name: str) -> bool:
+        return self.getMachine(machine_name) is not None
+
+    @pyqtSlot(str, result = str)
+    def getMachine(self, machine_name: str) -> "Optional[GlobalStack]":
+        machine = None
+        stacks = ContainerRegistry.getInstance().findContainerStacks(name = machine_name,
+                                                                     type = "machine")
+        if stacks:
+            machine = stacks[0]
+        return machine
