@@ -3,6 +3,7 @@
 
 import copy
 import io
+import json
 from typing import List, Optional
 import xml.etree.ElementTree as ET
 
@@ -420,6 +421,12 @@ class XmlMaterialProfile(InstanceContainer):
             setting_version = XmlMaterialProfile.xmlVersionToSettingVersion("1.2")
 
         return version * 1000000 + setting_version
+
+    def serializeMetaData(self):
+        data = self._metadata.copy()
+        data["id"] = self._id
+        data["name"] = self._name
+        return json.dumps(data)
 
     ##  Overridden from InstanceContainer
     def deserialize(self, serialized):
