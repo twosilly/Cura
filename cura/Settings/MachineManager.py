@@ -717,7 +717,7 @@ class MachineManager(QObject):
     ## Set the active material by switching out a container
     #  Depending on from/to material+current variant, a quality profile is chosen and set.
     @pyqtSlot(str)
-    def setActiveMaterial(self, material_id: str):
+    def _setActiveMaterial(self, material_id: str):
         with postponeSignals(*self._getContainerChangedSignals(), compress = CompressTechnique.CompressPerParameterValue):
             containers = ContainerRegistry.getInstance().findInstanceContainers(id = material_id)
             if not containers or not self._active_container_stack:
@@ -1278,3 +1278,146 @@ class MachineManager(QObject):
         if stacks:
             machine = stacks[0]
         return machine
+
+    @pyqtSlot(str)
+    def setActiveMaterial(self, material_id):
+        # TODO: handle empty material
+        Logger.log("d", "Setting active material to [%s]", material_id)
+        container_registry = ContainerRegistry.getInstance()
+
+        # get the main material first
+        main_material = container_registry.findInstanceContainers(id = material_id, type = "material")
+        if not main_material:
+            Logger.log("e", "Could not set active material to [%s], it's not found.", material_id)
+            return
+        main_material = main_material[0]
+
+        machine_definition = self._global_container_stack.definition
+
+        # get the generic ID of the main material by removing its "_<machine_def_id>_<variant_name>" suffix
+        main_material_generic_id = main_material.getId()
+        machine_def_id = machine_definition.getId()
+        if machine_definition.getMetaDataEntry("quality_definition", None):
+            machine_def_id = machine_definition.getMetaDataEntry("quality_definition")
+        if machine_def_id != "fdmprinter" and machine_definition.getMetaDataEntry("has_machine_materials"):
+            suffix = "_" + machine_def_id
+            variant_id = None
+            if machine_definition.getMetaDataEntry("has_variant_materials"):
+                variant_id = main_material.getMetaDataEntry("variant", None)
+                if variant_id:
+                    search_args = {"id": variant_id,
+                                   "type": "variant",
+                                   "definition": machine_def_id}
+                    variants = container_registry.findInstanceContainers(**search_args)
+                    if variants:
+                        variant_name = variants[0].getName().replace(" ", "_")
+                        suffix += "_" + variant_name
+
+            Logger.log("d", "--- def = [%s], variant = [%s]", machine_def_id, variant_id)
+            Logger.log("d", "--- suffix = [%s]", suffix)
+
+            if main_material_generic_id.endswith(suffix):
+                # DO NOT use "replace()" because the name of the material can contain the same string although this
+                # should be almost impossible to happen.
+                main_material_generic_id = main_material_generic_id[:len(main_material_generic_id) - len(suffix)]
+
+        # get current machine and variant
+        current_machine = self._global_container_stack
+        current_variant_id = None
+        if self._active_container_stack.getMetaDataEntry("type") == "extruder_train":
+            current_variant_id = self._active_container_stack.variant.getId()
+
+        # get all material with the same GUID
+        Logger.log("d", "----- main material generic id = [%s]", main_material_generic_id)
+        all_material_list = container_registry.findInstanceContainers(id = main_material_generic_id + "*",
+                                                                      GUID = main_material.getMetaDataEntry("GUID"),
+                                                                      type = "material")
+
+        # we keep a list of matching materials and use the one that fits best
+        # the matching rules are as the following:
+        #  1. both machine and variant match
+        #  2. only machine match, variant not
+        #  3. none matches, this means the material's machine definition is "fdmprinter" and variant is "None"
+        matching_materials = []
+
+        quality_definition_to_use = current_machine.definition.getMetaDataEntry("quality_definition", current_machine.definition.getId())
+
+        for material in all_material_list:
+            # get the material that's suitable for the current machine + variant
+            material_definition = material.getDefinition()
+            material_variant = material.getMetaDataEntry("variant", None)
+            score = -1
+            if material_definition.getId() == quality_definition_to_use:
+                score += 2
+                if current_variant_id == material_variant:
+                    score += 1
+                elif material_variant is not None:
+                    score = -1
+            elif material_definition.getId() == "fdmprinter" and not material_variant:
+                score += 1
+
+            Logger.log("d", "--- m = [%s], score = [%s]", material.getId(), score)
+            if score >= 0:
+                matching_materials.append((score, material))
+
+        # sort the material list according scores (highest on top)
+        matching_materials = sorted(matching_materials, reverse = True)
+        for m in matching_materials:
+            Logger.log("d", "--- matching material = [%s], score = [%s]", m[1].getId(), m[0])
+
+        if not matching_materials:
+            Logger.log("e", "Could not find material for machine [%s] variant [%s]",
+                       current_machine.definition.getId(), current_variant_id)
+            return
+
+        material_to_set = matching_materials[0][1]
+        Logger.log("i", "Change material to [%s] for stack [%s]",
+                   material_to_set.getId(), self._active_container_stack.getId())
+        self._setActiveMaterial(material_to_set.getId())
+
+    @pyqtSlot(result = InstanceContainer)
+    def getActiveMaterial(self) -> Optional[InstanceContainer]:
+        container_registry = ContainerRegistry.getInstance()
+        active_material = self._active_container_stack.material
+        machine_definition = self._global_container_stack.definition
+
+        # TODO: handle empty material
+
+        generic_material_id = active_material.getId()
+
+        # remove the "_<machine_id>_<variant_name>" suffix if present
+        if machine_definition.getMetaDataEntry("has_machine_materials") and machine_definition.getId() != "fdmprinter":
+            machine_def_id = machine_definition.getId()
+            if machine_definition.getMetaDataEntry("quality_definition", None):
+                machine_def_id = machine_definition.getMetaDataEntry("quality_definition")
+            suffix = "_" + machine_def_id
+            material_variant_id = None
+            if machine_definition.getMetaDataEntry("has_variant_materials"):
+                material_variant_id = active_material.getMetaDataEntry("variant", None)
+                if material_variant_id:
+                    search_args = {"id": material_variant_id,
+                                   "type": "variant",
+                                   "definition": machine_def_id}
+                    variants = container_registry.findInstanceContainers(**search_args)
+                    if variants:
+                        variant_name = variants[0].getName().replace(" ", "_")
+                        suffix += "_" + variant_name
+
+            Logger.log("d", "---- def = [%s], variant = [%s]", machine_definition.getId(), material_variant_id)
+            Logger.log("d", "---- suffix = [%s]", suffix)
+
+            if generic_material_id.endswith(suffix):
+                generic_material_id = generic_material_id[:len(generic_material_id) - len(suffix)]
+
+        Logger.log("d", "--- generic material id = [%s]", generic_material_id)
+
+        # get all material with the same GUID and return the general name
+        materials = container_registry.findInstanceContainers(id = generic_material_id,
+                                                              GUID = active_material.getMetaDataEntry("GUID"),
+                                                              type = "material")
+        if not materials:
+            return None
+        else:
+            for m in materials:
+                Logger.log("d", "--- got material id = [%s]", m.getId())
+            return materials[0]
