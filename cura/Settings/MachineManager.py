@@ -1306,13 +1306,18 @@ class MachineManager(QObject):
 
         # get the generic ID of the main material by removing its "_<machine_def_id>_<variant_name>" suffix
         main_material_generic_id = main_material.getId()
+
         machine_def_id = machine_definition.getId()
         if machine_definition.getMetaDataEntry("quality_definition", None):
             machine_def_id = machine_definition.getMetaDataEntry("quality_definition")
-        if machine_def_id != "fdmprinter" and machine_definition.getMetaDataEntry("has_machine_materials"):
+
+        has_machine_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_machine_materials", False))
+        has_variant_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_variant_materials", False))
+
+        if machine_def_id != "fdmprinter" and has_machine_materials:
             suffix = "_" + machine_def_id
             variant_id = None
-            if machine_definition.getMetaDataEntry("has_variant_materials"):
+            if has_variant_materials:
                 variant_id = main_material.getMetaDataEntry("variant", None)
                 if variant_id:
                     search_args = {"id": variant_id,
@@ -1396,13 +1401,16 @@ class MachineManager(QObject):
         generic_material_id = active_material.getId()
 
         # remove the "_<machine_id>_<variant_name>" suffix if present
-        if machine_definition.getMetaDataEntry("has_machine_materials") and machine_definition.getId() != "fdmprinter":
+        has_machine_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_machine_materials", False))
+        has_variant_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_variant_materials", False))
+
+        if has_machine_materials and machine_definition.getId() != "fdmprinter":
             machine_def_id = machine_definition.getId()
             if machine_definition.getMetaDataEntry("quality_definition", None):
                 machine_def_id = machine_definition.getMetaDataEntry("quality_definition")
             suffix = "_" + machine_def_id
             material_variant_id = None
-            if machine_definition.getMetaDataEntry("has_variant_materials"):
+            if has_variant_materials:
                 material_variant_id = active_material.getMetaDataEntry("variant", None)
                 if material_variant_id:
                     search_args = {"id": material_variant_id,
