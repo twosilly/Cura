@@ -4,7 +4,7 @@
 import os.path
 import urllib
 import uuid
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 from PyQt5.QtCore import QObject, QUrl, QVariant
 from UM.FlameProfiler import pyqtSlot
@@ -753,7 +753,7 @@ class ContainerManager(QObject):
     #
     #   \return \type{str} the id of the newly created container.
     @pyqtSlot(str, result = str)
-    def duplicateMaterial(self, material_id: str) -> str:
+    def duplicateMaterial(self, material_id: str, new_id: Optional[str] = None) -> str:
         containers = self._container_registry.findInstanceContainers(id=material_id)
         if not containers:
             Logger.log("d", "Unable to duplicate the material with id %s, because it doesn't exist.", material_id)
@@ -763,7 +763,9 @@ class ContainerManager(QObject):
         Application.getInstance().saveSettings()
 
         # Create a new ID & container to hold the data.
-        new_id = self._container_registry.uniqueName(material_id)
+        if not new_id:
+            new_id = material_id
+        new_id = self._container_registry.uniqueName(new_id)
         container_type = type(containers[0])  # Could be either a XMLMaterialProfile or a InstanceContainer
         duplicated_container = container_type(new_id)
 
@@ -780,7 +782,7 @@ class ContainerManager(QObject):
     #
     #   \return \type{str} the id of the newly created container.
     @pyqtSlot(result = str)
-    def createMaterial(self) -> str:
+    def createMaterial(self, new_id = "custom_material", new_name = "Custom Material") -> str:
         # Ensure all settings are saved.
         Application.getInstance().saveSettings()
 
@@ -801,28 +803,29 @@ class ContainerManager(QObject):
             return ""
 
         # Create a new ID & container to hold the data.
-        new_id = self._container_registry.uniqueName("custom_material")
+        new_id = self._container_registry.uniqueName(new_id)
         container_type = type(containers[0])  # Always XMLMaterialProfile, since we specifically clone the base_file
-        duplicated_container = container_type(new_id)
+        new_container = container_type(new_id)
 
         # Instead of duplicating we load the data from the basefile again.
         # This ensures that the inheritance goes well and all "cut up" subclasses of the xmlMaterial profile
         # are also correctly created.
         with open(containers[0].getPath(), encoding="utf-8") as f:
-            duplicated_container.deserialize(f.read())
+            new_container.deserialize(f.read())
 
-        duplicated_container.setMetaDataEntry("GUID", str(uuid.uuid4()))
-        duplicated_container.setMetaDataEntry("brand", catalog.i18nc("@label", "Custom"))
+        new_container.setMetaDataEntry("GUID", str(uuid.uuid4()))
+        new_container.setMetaDataEntry("brand", catalog.i18nc("@label", "Custom"))
         # We're defaulting to PLA, as machines with material profiles don't like material types they don't know.
         # TODO: This is a hack, the only reason this is in now is to bandaid the problem as we're close to a release!
-        duplicated_container.setMetaDataEntry("material", "PLA")
-        duplicated_container.setName(catalog.i18nc("@label", "Custom Material"))
+        new_container.setMetaDataEntry("material", "PLA")
+        new_name = self._container_registry.uniqueName(catalog.i18nc("@label", new_name))
+        new_container.setName(new_name)
 
-        self._container_registry.addContainer(duplicated_container)
+        self._container_registry.addContainer(new_container)
         return self._getMaterialContainerIdForActiveMachine(new_id)
 
     ##  Find the id of a material container based on the new material
-    #   Utilty function that is shared between duplicateMaterial and createMaterial
+    #   Utility function that is shared between duplicateMaterial and createMaterial
     #
     #   \param base_file \type{str} the id of the created container.
     def _getMaterialContainerIdForActiveMachine(self, base_file):

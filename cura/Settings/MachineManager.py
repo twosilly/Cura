@@ -1280,7 +1280,6 @@ class MachineManager(QObject):
     def hasMachine(self, machine_name: str) -> bool:
         return self.getMachine(machine_name) is not None
 
-    @pyqtSlot(str, result = str)
     def getMachine(self, machine_name: str) -> "Optional[GlobalStack]":
         machine = None
         stacks = ContainerRegistry.getInstance().findContainerStacks(name = machine_name,
@@ -1302,39 +1301,8 @@ class MachineManager(QObject):
             return
         main_material = main_material[0]
 
-        machine_definition = self._global_container_stack.definition
-
-        # get the generic ID of the main material by removing its "_<machine_def_id>_<variant_name>" suffix
-        main_material_generic_id = main_material.getId()
-
-        machine_def_id = machine_definition.getId()
-        if machine_definition.getMetaDataEntry("quality_definition", None):
-            machine_def_id = machine_definition.getMetaDataEntry("quality_definition")
-
-        has_machine_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_machine_materials", False))
-        has_variant_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_variant_materials", False))
-
-        if machine_def_id != "fdmprinter" and has_machine_materials:
-            suffix = "_" + machine_def_id
-            variant_id = None
-            if has_variant_materials:
-                variant_id = main_material.getMetaDataEntry("variant", None)
-                if variant_id:
-                    search_args = {"id": variant_id,
-                                   "type": "variant",
-                                   "definition": machine_def_id}
-                    variants = container_registry.findInstanceContainers(**search_args)
-                    if variants:
-                        variant_name = variants[0].getName().replace(" ", "_")
-                        suffix += "_" + variant_name
-
-            Logger.log("d", "--- def = [%s], variant = [%s]", machine_def_id, variant_id)
-            Logger.log("d", "--- suffix = [%s]", suffix)
-
-            if main_material_generic_id.endswith(suffix):
-                # DO NOT use "replace()" because the name of the material can contain the same string although this
-                # should be almost impossible to happen.
-                main_material_generic_id = main_material_generic_id[:len(main_material_generic_id) - len(suffix)]
+        # remove the "_<machine_id>_<variant_name>" suffix if present
+        main_material_base_id = self._getBaseMaterialID(main_material)
 
         # get current machine and variant
         current_machine = self._global_container_stack
@@ -1343,8 +1311,8 @@ class MachineManager(QObject):
             current_variant_id = self._active_container_stack.variant.getId()
 
         # get all material with the same GUID
-        Logger.log("d", "----- main material generic id = [%s]", main_material_generic_id)
-        all_material_list = container_registry.findInstanceContainers(id = main_material_generic_id + "*",
+        Logger.log("d", "----- main material generic id = [%s]", main_material_base_id)
+        all_material_list = container_registry.findInstanceContainers(id = main_material_base_id + "*",
                                                                       GUID = main_material.getMetaDataEntry("GUID"),
                                                                       type = "material")
 
@@ -1390,15 +1358,73 @@ class MachineManager(QObject):
                    material_to_set.getId(), self._active_container_stack.getId())
         self._setActiveMaterial(material_to_set.getId())
 
-    @pyqtSlot(result = InstanceContainer)
-    def getActiveMaterial(self) -> Optional[InstanceContainer]:
+    @pyqtSlot(result = str)
+    def getActiveMaterial(self) -> "Optional[InstanceContainer]":
         container_registry = ContainerRegistry.getInstance()
         active_material = self._active_container_stack.material
-        machine_definition = self._global_container_stack.definition
 
         # TODO: handle empty material
 
-        generic_material_id = active_material.getId()
+        # remove the "_<machine_id>_<variant_name>" suffix if present
+        base_material_id = self._getBaseMaterialID(active_material)
+
+        # get all material with the same GUID and return the general name
+        materials = container_registry.findInstanceContainers(id = base_material_id,
+                                                              GUID = active_material.getMetaDataEntry("GUID"),
+                                                              type = "material")
+        if not materials:
+            return None
+        else:
+            for m in materials:
+                Logger.log("d", "--- got material id = [%s]", m.getId())
+            return materials[0]
+
+    @pyqtSlot(str, result = bool)
+    def hasMaterial(self, material_id: str) -> bool:
+        container_registry = ContainerRegistry.getInstance()
+        results = container_registry.findInstanceContainers(id = material_id,
+                                                            type = "material")
+        return len(results) > 0
+
+    @pyqtSlot(str)
+    def removeMaterial(self, material_id: str):
+        container_registry = ContainerRegistry.getInstance()
+        material = container_registry.findInstanceContainers(id = material_id,
+                                                             type = "material")
+        if not material:
+            Logger.log("i", "Could not find material [%s]. Could not remove it.", material_id)
+            return
+        material = material[0]
+
+        # TODO: switch to a different material if this material is active
+
+        materials_to_remove = container_registry.findInstanceContainers(base_file = material.getMetaDataEntry("base_file"),
+                                                                        GUID = material.getMetaDataEntry("GUID"),
+                                                                        type = "material")
+        for material_to_remove in materials_to_remove:
+            container_registry.removeContainer(material_to_remove.getId())
+
+    def renameMaterial(self, material_id: str, new_name: str):
+        container_registry = ContainerRegistry.getInstance()
+        material = container_registry.findInstanceContainers(id = material_id,
+                                                             type = "material")
+        if not material:
+            Logger.log("i", "Could not find material [%s]. Could not remove it.", material_id)
+            return
+        material = material[0]
+
+        materials_to_rename = container_registry.findInstanceContainers(base_file = material.getMetaDataEntry("base_file"),
+                                                                        GUID = material.getMetaDataEntry("GUID"),
+                                                                        type = "material")
+        for material_to_rename in materials_to_rename:
+            material_to_rename.setName(new_name)
+
+    def _getBaseMaterialID(self, material):
+        container_registry = ContainerRegistry.getInstance()
+
+        machine_definition = material.getDefinition()
+
+        base_material_id = material.getId()
 
         # remove the "_<machine_id>_<variant_name>" suffix if present
         has_machine_materials = Util.parseBool(machine_definition.getMetaDataEntry("has_machine_materials", False))
@@ -1411,7 +1437,7 @@ class MachineManager(QObject):
             suffix = "_" + machine_def_id
             material_variant_id = None
             if has_variant_materials:
-                material_variant_id = active_material.getMetaDataEntry("variant", None)
+                material_variant_id = material.getMetaDataEntry("variant", None)
                 if material_variant_id:
                     search_args = {"id": material_variant_id,
                                    "type": "variant",
@@ -1424,18 +1450,9 @@ class MachineManager(QObject):
             Logger.log("d", "---- def = [%s], variant = [%s]", machine_definition.getId(), material_variant_id)
             Logger.log("d", "---- suffix = [%s]", suffix)
 
-            if generic_material_id.endswith(suffix):
-                generic_material_id = generic_material_id[:len(generic_material_id) - len(suffix)]
+            if base_material_id.endswith(suffix):
+                base_material_id = base_material_id[:len(base_material_id) - len(suffix)]
 
-        Logger.log("d", "--- generic material id = [%s]", generic_material_id)
+        Logger.log("d", "--- base material id = [%s]", base_material_id)
+        return base_material_id
 
-        # get all material with the same GUID and return the general name
-        materials = container_registry.findInstanceContainers(id = generic_material_id,
-                                                              GUID = active_material.getMetaDataEntry("GUID"),
-                                                              type = "material")
-        if not materials:
-            return None
-        else:
-            for m in materials:
-                Logger.log("d", "--- got material id = [%s]", m.getId())
-            return materials[0]
