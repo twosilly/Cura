@@ -50,7 +50,6 @@ from cura.Settings.ProfilesModel import ProfilesModel
 from cura.Settings.MaterialsModel import MaterialsModel
 from cura.Settings.QualityAndUserProfilesModel import QualityAndUserProfilesModel
 from cura.Settings.SettingInheritanceManager import SettingInheritanceManager
-from cura.Settings.UserProfilesModel import UserProfilesModel
 from cura.Settings.SimpleModeSettingsManager import SimpleModeSettingsManager
 
 from . import PlatformPhysics
@@ -788,7 +787,6 @@ class CuraApplication(QtApplication):
         qmlRegisterSingletonType(ProfilesModel, "Cura", 1, 0, "ProfilesModel", ProfilesModel.createProfilesModel)
         qmlRegisterType(MaterialsModel, "Cura", 1, 0, "MaterialsModel")
         qmlRegisterType(QualityAndUserProfilesModel, "Cura", 1, 0, "QualityAndUserProfilesModel")
-        qmlRegisterType(UserProfilesModel, "Cura", 1, 0, "UserProfilesModel")
         qmlRegisterType(MaterialSettingsVisibilityHandler, "Cura", 1, 0, "MaterialSettingsVisibilityHandler")
         qmlRegisterType(QualitySettingsModel, "Cura", 1, 0, "QualitySettingsModel")
         qmlRegisterType(MachineNameValidator, "Cura", 1, 0, "MachineNameValidator")
