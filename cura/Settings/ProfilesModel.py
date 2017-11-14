@@ -1,15 +1,12 @@
 # Copyright (c) 2017 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 
-from collections import OrderedDict
-
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtProperty, pyqtSignal
 
 from UM.Application import Application
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Settings.Models.InstanceContainersModel import InstanceContainersModel
 
-from cura.QualityManager import QualityManager
 from cura.Settings.ExtruderManager import ExtruderManager
 
 from typing import List, TYPE_CHECKING
@@ -24,17 +21,46 @@ class ProfilesModel(InstanceContainersModel):
     LayerHeightRole = Qt.UserRole + 1001
     LayerHeightWithoutUnitRole = Qt.UserRole + 1002
     AvailableRole = Qt.UserRole + 1003
+    IsCustomQualityRole = Qt.UserRole + 1004
 
     def __init__(self, parent = None):
+        self._quality_results = []
+        self._has_usable_quality = False
+        self._has_quality_changes = False
+
         super().__init__(parent)
         self.addRoleName(self.LayerHeightRole, "layer_height")
         self.addRoleName(self.LayerHeightWithoutUnitRole, "layer_height_without_unit")
         self.addRoleName(self.AvailableRole, "available")
+        self.addRoleName(self.IsCustomQualityRole, "is_custom_quality")
 
         Application.getInstance().globalContainerStackChanged.connect(self._update)
         Application.getInstance().getMachineManager().activeVariantChanged.connect(self._update)
         Application.getInstance().getMachineManager().activeStackChanged.connect(self._update)
         Application.getInstance().getMachineManager().activeMaterialChanged.connect(self._update)
+
+    hasUsableQualityChanged = pyqtSignal()
+    hasQualityChangesChanged = pyqtSignal()
+
+    @pyqtProperty(bool, notify = hasUsableQualityChanged)
+    def hasUsableQuality(self):
+        return self._has_usable_quality
+
+    def setHasUsableQuality(self, value):
+        need_emit_signal = self._has_usable_quality != value
+        self._has_usable_quality = value
+        if need_emit_signal:
+            self.hasUsableQualityChanged.emit()
+
+    @pyqtProperty(bool, notify = hasQualityChangesChanged)
+    def hasQualityChanges(self):
+        return self._has_quality_changes
+
+    def setHasQualityChanges(self, value):
+        need_emit_signal = self._has_quality_changes != value
+        self._has_quality_changes = value
+        if need_emit_signal:
+            self.hasQualityChangesChanged.emit()
 
     # Factory function, used by QML
     @staticmethod
@@ -65,34 +91,48 @@ class ProfilesModel(InstanceContainersModel):
         extruder_stacks = self._getOrderedExtruderStacksList()
         materials = [extruder.material for extruder in extruder_stacks]
 
-        # Fetch the list of usable qualities across all extruders.
-        # The actual list of quality profiles come from the first extruder in the extruder list.
-        result = QualityManager.getInstance().findAllUsableQualitiesForMachineAndExtruders(global_container_stack, extruder_stacks)
+        from .CureCoreAPI import CuraCoreAPI
+        core = CuraCoreAPI()
 
-        # The usable quality types are set
-        quality_type_set = set([x.getMetaDataEntry("quality_type") for x in result])
+        # cache the results for _recomputeItems()
+        self._quality_results = core.getQualitiesForMachineByName(global_container_stack.getName())
 
-        # Fetch all qualities available for this machine and the materials selected in extruders
-        all_qualities = QualityManager.getInstance().findAllQualitiesForMachineAndMaterials(global_stack_definition, materials)
+        extruder_manager = ExtruderManager.getInstance()
+        active_extruder = extruder_manager.getActiveExtruderStack()
 
-        # If in the all qualities there is some of them that are not available due to incompatibility with materials
-        # we also add it so that they will appear in the slide quality bar. However in recomputeItems will be marked as
-        # not available so they will be shown in gray
-        for quality in all_qualities:
-            if quality.getMetaDataEntry("quality_type") not in quality_type_set:
-                result.append(quality)
+        usable_quality_containers = []
+        for quality_type, quality_data in self._quality_results.qualities.items():
+            # get the quality container for the currently active stack
+            if global_container_stack.extruders:
+                quality_container = quality_data["qualities"][int(active_extruder.getMetaDataEntry("position"))]
+            else:
+                quality_container = quality_data["qualities"]
+
+            quality_data["container_for_active_stack"] = quality_container
+            if quality_data["is_usable"]:
+                usable_quality_containers.append(quality_container)
+
+        for quality_changes_name, quality_changes_data in self._quality_results.quality_changes.items():
+            # get the quality container for the currently active stack
+            if global_container_stack.extruders:
+                quality_changes_container = quality_changes_data["quality_changes"][int(active_extruder.getMetaDataEntry("position"))]
+            else:
+                quality_changes_container = quality_changes_data["quality_changes"]
+            quality_changes_data["container_for_active_stack"] = quality_changes_container
 
         # if still profiles are found, add a single empty_quality ("Not supported") instance to the drop down list
-        if len(result) == 0:
+        self.setHasUsableQuality(len(usable_quality_containers) > 0)
+        if not self._has_usable_quality:
             # If not qualities are found we dynamically create a not supported container for this machine + material combination
             not_supported_container = ContainerRegistry.getInstance().findContainers(id = "empty_quality")[0]
-            result.append(not_supported_container)
+            usable_quality_containers.append(not_supported_container)
 
-        return result
+        self.setHasQualityChanges(len(self._quality_results.quality_changes) > 0)
+
+        return usable_quality_containers
 
     ##  Re-computes the items in this model, and adds the layer height role.
     def _recomputeItems(self):
-
         # Some globals that we can re-use.
         global_container_stack = Application.getInstance().getGlobalContainerStack()
         if global_container_stack is None:
@@ -100,67 +140,54 @@ class ProfilesModel(InstanceContainersModel):
 
         extruder_stacks = self._getOrderedExtruderStacksList()
         container_registry = ContainerRegistry.getInstance()
-
-        # Get a list of usable/available qualities for this machine and material
-        qualities = QualityManager.getInstance().findAllUsableQualitiesForMachineAndExtruders(global_container_stack, extruder_stacks)
+        machine_manager = Application.getInstance().getMachineManager()
 
         unit = global_container_stack.getBottom().getProperty("layer_height", "unit")
         if not unit:
             unit = ""
 
-        # group all quality items according to quality_types, so we know which profile suits the currently
-        # active machine and material, and later yield the right ones.
-        tmp_all_quality_items = OrderedDict()
-        for item in super()._recomputeItems():
-            profile = container_registry.findContainers(id=item["id"])
-            quality_type = profile[0].getMetaDataEntry("quality_type") if profile else ""
+        # if there is no usable quality, return the empty_quality as "Not Supported"
+        if not self._has_usable_quality:
+            item = self._createItem(self.__instance[0])
+            self._setItemLayerHeight(item, "", "")
+            item["available"] = True
+            yield item
+            return
 
-            if quality_type not in tmp_all_quality_items:
-                tmp_all_quality_items[quality_type] = {"suitable_container": None, "all_containers": []}
+        quality_dict = {}
+        for quality_type in sorted(self._quality_results.qualities.keys()):
+            quality_data = self._quality_results.qualities[quality_type]
 
-            tmp_all_quality_items[quality_type]["all_containers"].append(item)
-            if tmp_all_quality_items[quality_type]["suitable_container"] is None:
-                tmp_all_quality_items[quality_type]["suitable_container"] = item
+            profile = quality_data["container_for_active_stack"]
 
-        # reverse the ordering (finest first, coarsest last)
-        all_quality_items = OrderedDict()
-        for key in reversed(tmp_all_quality_items.keys()):
-            all_quality_items[key] = tmp_all_quality_items[key]
+            item = self._createItem(profile)
+            item["available"] = quality_data["is_usable"]
 
-        # First the suitable containers are set in the model
-        containers = []
-        for data_item in all_quality_items.values():
-            suitable_item = data_item["suitable_container"]
-            if suitable_item is not None:
-                containers.append(suitable_item)
-
-        # Once the suitable containers are collected, the rest of the containers are appended
-        for data_item in all_quality_items.values():
-            for item in data_item["all_containers"]:
-                if item not in containers:
-                    containers.append(item)
-
-        # Now all the containers are set
-        for item in containers:
-            profile = container_registry.findContainers(id = item["id"])
-
-            # When for some reason there is no profile container in the registry
-            if not profile:
-                self._setItemLayerHeight(item, "", "")
-                item["available"] = False
-                yield item
+            # Easy case: This profile defines its own layer height.
+            if profile.hasProperty("layer_height", "value"):
+                self._setItemLayerHeight(item, profile.getProperty("layer_height", "value"), unit)
+                quality_dict[float(item["layer_height_without_unit"])] = item
                 continue
 
-            profile = profile[0]
+            # Quality has no value for layer height either. Get the layer height from somewhere lower in the stack.
+            skip_until_container = global_container_stack.material
+            if not skip_until_container or skip_until_container == ContainerRegistry.getInstance().getEmptyInstanceContainer(): #No material in stack.
+                skip_until_container = global_container_stack.variant
+                if not skip_until_container or skip_until_container == ContainerRegistry.getInstance().getEmptyInstanceContainer(): #No variant in stack.
+                    skip_until_container = global_container_stack.getBottom()
+            self._setItemLayerHeight(item, global_container_stack.getRawProperty("layer_height", "value", skip_until_container = skip_until_container.getId()), unit)  # Fall through to the currently loaded material.
+            quality_dict[float(item["layer_height_without_unit"])] = item
 
-            # When there is a profile but it's an empty quality should. It's shown in the list (they are "Not Supported" profiles)
-            if profile.getId() == "empty_quality":
-                self._setItemLayerHeight(item, "", "")
-                item["available"] = True
-                yield item
-                continue
+        for layer_height in sorted(quality_dict.keys()):
+            yield quality_dict[layer_height]
 
-            item["available"] = profile in qualities
+        for quality_changes_name in sorted(self._quality_results.quality_changes.keys()):
+            quality_data = self._quality_results.quality_changes[quality_changes_name]
+
+            profile = quality_data["container_for_active_stack"]
+
+            item = self._createItem(profile)
+            item["available"] = quality_data["is_usable"]
 
             # Easy case: This profile defines its own layer height.
             if profile.hasProperty("layer_height", "value"):
@@ -216,3 +243,16 @@ class ProfilesModel(InstanceContainersModel):
     def _setItemLayerHeight(item, value, unit):
         item["layer_height"] = str(value) + unit
         item["layer_height_without_unit"] = str(value)
+
+    def _createItem(self, container):
+        metadata = container.getMetaData().copy()
+        metadata["has_settings"] = len(container.getAllKeys()) > 0
+
+        return {
+            "name": container.getName(),
+            "id": container.getId(),
+            "metadata": metadata,
+            "readOnly": container.isReadOnly(),
+            "section": container.getMetaDataEntry(self._section_property, ""),
+            "is_custom_quality": container.getMetaDataEntry("type") == "quality_changes",
+        }
