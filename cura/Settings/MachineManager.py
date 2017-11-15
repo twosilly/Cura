@@ -608,22 +608,22 @@ class MachineManager(QObject):
 
     @pyqtProperty(str, notify=activeQualityChanged)
     def activeQualityName(self) -> str:
-        if self._active_container_stack and self._global_container_stack:
+        if self._global_container_stack:
             quality = self._global_container_stack.qualityChanges
             if quality and not isinstance(quality, type(self._empty_quality_changes_container)):
                 return quality.getName()
-            quality = self._active_container_stack.quality
+            quality = self._global_container_stack.quality
             if quality:
                 return quality.getName()
         return ""
 
     @pyqtProperty(str, notify=activeQualityChanged)
     def activeQualityId(self) -> str:
-        if self._active_container_stack:
-            quality = self._active_container_stack.qualityChanges
+        if self._global_container_stack:
+            quality = self._global_container_stack.qualityChanges
             if quality and not isinstance(quality, type(self._empty_quality_changes_container)):
                 return quality.getId()
-            quality = self._active_container_stack.quality
+            quality = self._global_container_stack.quality
             if quality:
                 return quality.getId()
         return ""
@@ -744,7 +744,7 @@ class MachineManager(QObject):
 
             material_container.nameChanged.connect(self._onMaterialNameChanged)
 
-            if material_container.getMetaDataEntry("compatible") == False:
+            if not material_container.getMetaDataEntry("compatible"):
                 self._material_incompatible_message.show()
             else:
                 self._material_incompatible_message.hide()

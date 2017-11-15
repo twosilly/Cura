@@ -13,15 +13,15 @@ Menu
 
     Instantiator
     {
-        model: Cura.ProfilesModel 
+        model: Cura.ProfilesModel
 
         MenuItem
         {
             text: (model.layer_height != "") ? model.name + " - " + model.layer_height : model.name
             checkable: !model.is_custom_quality && model.available
-            checked: Cura.MachineManager.activeQualityId == model.id
+            checked: Cura.NewMachineManager.activeMachine.qualityId == model.id
             exclusiveGroup: group
-            onTriggered: Cura.MachineManager.setActiveQuality(model.id)
+            onTriggered: Cura.ProfilesModel.setQualityType(model.quality_type)
             visible: !model.is_custom_quality
             enabled: !model.is_custom_quality && model.available
         }
@@ -33,7 +33,7 @@ Menu
     MenuSeparator
     {
         id: customSeparator
-        visible: model.hasQualityChanges
+        visible: Cura.ProfilesModel.hasQualityChanges
     }
 
     Instantiator
@@ -44,10 +44,10 @@ Menu
         MenuItem
         {
             text: model.name
-            checkable: model.is_custom_quality && model.available
-            checked: Cura.MachineManager.activeQualityChangesId == model.id
+            checkable: true
+            checked: Cura.NewMachineManager.activeMachine.qualityChangesId == model.id
             exclusiveGroup: group
-            onTriggered: Cura.MachineManager.setActiveQuality(model.id)
+            onTriggered: Cura.NewMachineManager.activeMachine.setQuality(model.name)
             visible: model.is_custom_quality
             enabled: model.is_custom_quality && model.available
         }

@@ -52,6 +52,8 @@ class CuraContainerStack(ContainerStack):
 
     # This is emitted whenever the containersChanged signal from the ContainerStack base class is emitted.
     pyqtContainersChanged = pyqtSignal()
+    pyqtVariantChanged = pyqtSignal(str)
+    pyqtMaterialChanged = pyqtSignal(str)
 
     ##  Set the user changes container.
     #
@@ -135,7 +137,10 @@ class CuraContainerStack(ContainerStack):
     #
     #   \param new_quality_changes The new material container. It is expected to have a "type" metadata entry with the value "quality_changes".
     def setMaterial(self, new_material: InstanceContainer, postpone_emit = False) -> None:
+        if self.material.getId() == new_material.getId():
+            return
         self.replaceContainer(_ContainerIndexes.Material, new_material, postpone_emit = postpone_emit)
+        self.pyqtMaterialChanged.emit(self._id)
 
     ##  Set the material container by an ID.
     #
@@ -173,7 +178,10 @@ class CuraContainerStack(ContainerStack):
     #
     #   \param new_quality_changes The new variant container. It is expected to have a "type" metadata entry with the value "quality_changes".
     def setVariant(self, new_variant: InstanceContainer) -> None:
+        if self.variant.getId() == new_variant.getId():
+            return
         self.replaceContainer(_ContainerIndexes.Variant, new_variant)
+        self.pyqtVariantChanged.emit(self._id)
 
     ##  Set the variant container by an ID.
     #

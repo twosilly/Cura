@@ -309,6 +309,10 @@ class CuraApplication(QtApplication):
 
         preferences.addPreference("view/invert_zoom", False)
 
+        from cura.Core.MachineManager import NewMachineManager
+        self._new_machine_manager = NewMachineManager.getInstance()
+        self._new_machine_manager.initialize()
+
         self._need_to_show_user_agreement = not Preferences.getInstance().getValue("general/accepted_user_agreement")
 
         for key in [
@@ -704,6 +708,9 @@ class CuraApplication(QtApplication):
         qmlRegisterSingletonType(SimpleModeSettingsManager, "Cura", 1, 2, "SimpleModeSettingsManager", self.getSimpleModeSettingsManager)
         qmlRegisterSingletonType(MachineActionManager.MachineActionManager, "Cura", 1, 0, "MachineActionManager", self.getMachineActionManager)
 
+        from cura.Core.MachineManager import NewMachineManager
+        qmlRegisterSingletonType(NewMachineManager, "Cura", 1, 0, "NewMachineManager", self.getNewMachineManager)
+
         self.setMainQml(Resources.getPath(self.ResourceTypes.QmlFiles, "Cura.qml"))
         self._qml_import_paths.append(Resources.getPath(self.ResourceTypes.QmlFiles))
 
@@ -727,6 +734,13 @@ class CuraApplication(QtApplication):
         if self._machine_manager is None:
             self._machine_manager = MachineManager.createMachineManager()
         return self._machine_manager
+
+    def getNewMachineManager(self, *args):
+        if self._new_machine_manager is None:
+            from cura.Core.MachineManager import NewMachineManager
+            self._new_machine_manager = NewMachineManager.getInstance()
+            self._new_machine_manager.initialize()
+        return self._new_machine_manager
 
     def getExtruderManager(self, *args):
         if self._extruder_manager is None:
