@@ -18,38 +18,34 @@ Menu
         MenuItem
         {
             text: (model.layer_height != "") ? model.name + " - " + model.layer_height : model.name
-            checkable: !model.is_custom_quality && model.available
+            checkable: true
             checked: Cura.MachineManager.activeQualityId == model.id
             exclusiveGroup: group
             onTriggered: Cura.MachineManager.setActiveQuality(model.id)
-            visible: !model.is_custom_quality
-            enabled: !model.is_custom_quality && model.available
+            visible: model.available
         }
 
         onObjectAdded: menu.insertItem(index, object);
         onObjectRemoved: menu.removeItem(object);
     }
 
-    MenuSeparator
-    {
-        id: customSeparator
-        visible: model.hasQualityChanges
-    }
+    MenuSeparator { id: customSeparator }
 
     Instantiator
     {
         id: customProfileInstantiator
-        model: Cura.ProfilesModel
+        model: Cura.UserProfilesModel
+        {
+            onModelReset: customSeparator.visible = rowCount() > 0
+        }
 
         MenuItem
         {
             text: model.name
-            checkable: model.is_custom_quality && model.available
+            checkable: true
             checked: Cura.MachineManager.activeQualityChangesId == model.id
             exclusiveGroup: group
             onTriggered: Cura.MachineManager.setActiveQuality(model.id)
-            visible: model.is_custom_quality
-            enabled: model.is_custom_quality && model.available
         }
 
         onObjectAdded:

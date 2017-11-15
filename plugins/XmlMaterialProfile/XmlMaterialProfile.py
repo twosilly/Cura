@@ -170,7 +170,7 @@ class XmlMaterialProfile(InstanceContainer):
         builder.end("name")
         ## End Name Block
 
-        for key, value in sorted(metadata.items()):
+        for key, value in metadata.items():
             builder.start(key)
             if value is not None: #Nones get handled well by the builder.
                 #Otherwise the builder always expects a string.
@@ -185,7 +185,7 @@ class XmlMaterialProfile(InstanceContainer):
         ## Begin Properties Block
         builder.start("properties")
 
-        for key, value in sorted(properties.items()):
+        for key, value in properties.items():
             builder.start(key)
             builder.data(value)
             builder.end(key)
