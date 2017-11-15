@@ -115,6 +115,14 @@ class ExtruderStack(CuraContainerStack):
             if has_global_dependencies:
                 self.getNextStack().propertiesChanged.emit(key, properties)
 
+    def serializeMetaData(self):
+        import json
+        data_dict = self._metadata.copy()
+        data_dict["id"] = self._id
+        data_dict["name"] = self._name
+
+        return json.dumps(data_dict)
+
 
 extruder_stack_mime = MimeType(
     name = "application/x-cura-extruderstack",
