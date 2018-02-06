@@ -30,6 +30,7 @@ Window {
             topMargin: UM.Theme.getSize("default_margin").height
             bottomMargin: UM.Theme.getSize("default_margin").height
         }
+        property var viewing: "available"
 
         Rectangle {
             id: topBar
@@ -51,7 +52,7 @@ Window {
                             implicitWidth: 96
                             implicitHeight: 48
                             Rectangle {
-                                visible: manager.viewing == "available" ? true : false
+                                visible: view.viewing == "available" ? true : false
                                 color: UM.Theme.getColor("primary")
                                 anchors.bottom: parent.bottom
                                 width: parent.width
@@ -68,7 +69,11 @@ Window {
                             horizontalAlignment: Text.AlignHCenter
                         }
                     }
-                    onClicked: manager.setView("available")
+                    onClicked: {
+                        // manager.setView("available")
+                        pluginList.model.setView("available");
+                        // view.viewing = "available";
+                    }
                 }
 
                 Button {
@@ -79,7 +84,7 @@ Window {
                             implicitWidth: 96
                             implicitHeight: 48
                             Rectangle {
-                                visible: manager.viewing == "installed" ? true : false
+                                visible: view.viewing == "installed" ? true : false
                                 color: UM.Theme.getColor("primary")
                                 anchors.bottom: parent.bottom
                                 width: parent.width
@@ -96,7 +101,11 @@ Window {
                             horizontalAlignment: Text.AlignHCenter
                         }
                     }
-                    onClicked: manager.setView("installed")
+                    onClicked: {
+                        // manager.setView("installed")
+                        pluginList.model.setView("installed");
+                        // view.viewing = "installed";
+                    }
                 }
             }
         }
@@ -119,11 +128,12 @@ Window {
             ListView {
                 id: pluginList
                 property var activePlugin
-                property var filter: "installed"
 
                 anchors.fill: parent
 
-                model: manager.pluginsModel
+                model: UM.PluginsModel {
+                    view: view.viewing
+                }
                 delegate: PluginEntry {}
             }
         }
