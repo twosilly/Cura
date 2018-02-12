@@ -52,7 +52,7 @@ Window {
                             implicitWidth: 96
                             implicitHeight: 48
                             Rectangle {
-                                visible: view.viewing == "available" ? true : false
+                                visible: pluginList.model.view == "available"
                                 color: UM.Theme.getColor("primary")
                                 anchors.bottom: parent.bottom
                                 width: parent.width
@@ -70,9 +70,7 @@ Window {
                         }
                     }
                     onClicked: {
-                        // manager.setView("available")
-                        pluginList.model.setView("available");
-                        // view.viewing = "available";
+                        pluginList.model.view = "available";
                     }
                 }
 
@@ -84,7 +82,7 @@ Window {
                             implicitWidth: 96
                             implicitHeight: 48
                             Rectangle {
-                                visible: view.viewing == "installed" ? true : false
+                                visible: pluginList.model.view == "installed"
                                 color: UM.Theme.getColor("primary")
                                 anchors.bottom: parent.bottom
                                 width: parent.width
@@ -102,9 +100,7 @@ Window {
                         }
                     }
                     onClicked: {
-                        // manager.setView("installed")
-                        pluginList.model.setView("installed");
-                        // view.viewing = "installed";
+                        pluginList.model.view = "installed";
                     }
                 }
             }
