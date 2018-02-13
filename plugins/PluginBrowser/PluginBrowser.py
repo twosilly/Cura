@@ -137,7 +137,7 @@ class PluginBrowser(QObject, Extension):
 
     def _createDialog(self, qml_name):
         Logger.log("d", "Creating dialog [%s]", qml_name)
-        path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), qml_name)
+        path = os.path.join(self._plugin_registry.getPluginPath(self.getPluginId()), qml_name)
         dialog = Application.getInstance().createQmlComponent(path, {"manager": self})
         return dialog
 
@@ -214,39 +214,30 @@ class PluginBrowser(QObject, Extension):
         else:
             location = file_path
 
-        result = PluginRegistry.getInstance().installPlugin("file://" + location)
+        result = self._plugin_registry.installPlugin("file://" + location)
+
+        Logger.log("i", "%s was installed", result["id"])
 
         self._newly_installed_plugin_ids.append(result["id"])
-        self.pluginsMetadataChanged.emit()
 
         self.openRestartDialog(result["message"])
+
         self._restart_required = True
         self.restartRequiredChanged.emit()
-        # Application.getInstance().messageBox(i18n_catalog.i18nc("@window:title", "Plugin browser"), result["message"])
+
 
     @pyqtSlot(str)
     def removePlugin(self, plugin_id):
-        result = PluginRegistry.getInstance().uninstallPlugin(plugin_id)
+        result = self._plugin_registry.uninstallPlugin(plugin_id)
 
-        self._newly_uninstalled_plugin_ids.append(result["id"])
-        self.pluginsMetadataChanged.emit()
+        Logger.log("i", "%s was uninstalled", plugin_id)
+
+        self._newly_uninstalled_plugin_ids.append(plugin_id)
 
         self._restart_required = True
         self.restartRequiredChanged.emit()
 
         Application.getInstance().messageBox(i18n_catalog.i18nc("@window:title", "Plugin browser"), result["message"])
-
-    @pyqtSlot(str)
-    def enablePlugin(self, plugin_id):
-        self._plugin_registry.enablePlugin(plugin_id)
-        self.pluginsMetadataChanged.emit()
-        Logger.log("i", "%s was set as 'active'", id)
-
-    @pyqtSlot(str)
-    def disablePlugin(self, plugin_id):
-        self._plugin_registry.disablePlugin(plugin_id)
-        self.pluginsMetadataChanged.emit()
-        Logger.log("i", "%s was set as 'deactive'", id)
 
     @pyqtProperty(int, notify = onDownloadProgressChanged)
     def downloadProgress(self):
@@ -287,39 +278,7 @@ class PluginBrowser(QObject, Extension):
 
     @pyqtProperty(QObject, notify=pluginsMetadataChanged)
     def pluginsModel(self):
-        print("Updating plugins model...", self._view)
-        self._plugins_model = PluginsModel(self._view)
-        # self._plugins_model.update()
-
-        # Check each plugin the registry for matching plugin from server
-        # metadata, and if found, compare the versions. Higher version sets
-        # 'can_upgrade' to 'True':
-        for plugin in self._plugins_model.items:
-            if self._checkCanUpgrade(plugin["id"], plugin["version"]):
-                plugin["can_upgrade"] = True
-                print(self._plugins_metadata)
-
-                for item in self._plugins_metadata:
-                    if item["id"] == plugin["id"]:
-                        plugin["update_url"] = item["file_location"]
-
-        return self._plugins_model
-
-
-
-    def _checkCanUpgrade(self, id, version):
-
-        # TODO: This could maybe be done more efficiently using a dictionary...
-
-        # Scan plugin server data for plugin with the given id:
-        for plugin in self._plugins_metadata:
-            if id == plugin["id"]:
-                reg_version = Version(version)
-                new_version = Version(plugin["version"])
-                if new_version > reg_version:
-                    Logger.log("i", "%s has an update availible: %s", plugin["id"], plugin["version"])
-                    return True
-        return False
+        print("SHOULD NOW UPDATE PLUGINSMODEL")
 
     def _checkAlreadyInstalled(self, id):
         metadata = self._plugin_registry.getMetaData(id)
@@ -371,7 +330,7 @@ class PluginBrowser(QObject, Extension):
                     self._plugin_registry.addExternalPlugins(self._plugins_metadata)
                     self.pluginsMetadataChanged.emit()
                 except json.decoder.JSONDecodeError:
-                    Logger.log("w", "Received an invalid print job state message: Not valid JSON.")
+                    Logger.log("w", "Plugin does not contain valid JSON.")
                     return
         else:
             # Ignore any operation that is not a get operation

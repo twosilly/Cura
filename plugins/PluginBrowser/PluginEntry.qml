@@ -183,7 +183,10 @@ Component {
                         horizontalAlignment: Text.AlignHCenter
                     }
                 }
-                onClicked: manager.removePlugin( model.id )
+                onClicked: {
+                    manager.removePlugin( model.id )
+                    pluginList.model._update()
+                }
             }
 
             // For Ultimaker Plugins:
@@ -208,9 +211,7 @@ Component {
                         horizontalAlignment: Text.AlignHCenter
                     }
                 }
-                onClicked: {
-                    manager.enablePlugin(model.id);
-                }
+                onClicked: pluginList.model.enablePlugin(model.id)
             }
             Button {
                 id: disableButton
@@ -233,221 +234,9 @@ Component {
                         horizontalAlignment: Text.AlignHCenter
                     }
                 }
-                onClicked: {
-                    manager.disablePlugin(model.id);
-                }
-            }
-            /*
-            Rectangle {
-                id: removeControls
-                visible: model.status == "installed" && model.enabled
-                width: 96
-                height: 30
-                color: "transparent"
-                Button {
-                    id: removeButton
-                    text: "Disable"
-                    enabled: {
-                        if ( manager.isDownloading && pluginList.activePlugin == model ) {
-                            return false;
-                        } else if ( model.required ) {
-                            return false;
-                        } else {
-                            return true;
-                        }
-                    }
-                    onClicked: {
-                        manager.disablePlugin(model.id);
-                    }
-                    style: ButtonStyle {
-                        background: Rectangle {
-                            color: "white"
-                            implicitWidth: 96
-                            implicitHeight: 30
-                            border {
-                                width: 1
-                                color: UM.Theme.getColor("lining")
-                            }
-                        }
-                        label: Text {
-                            verticalAlignment: Text.AlignVCenter
-                            color: "grey"
-                            text: control.text
-                            horizontalAlignment: Text.AlignLeft
-                        }
-                    }
-                }
-                Button {
-                    id: removeDropDown
-                    property bool open: false
-                    UM.RecolorImage {
-                        anchors.centerIn: parent
-                        height: 10
-                        width: 10
-                        source: UM.Theme.getIcon("arrow_bottom")
-                        color: "grey"
-                    }
-                    enabled: {
-                        if ( manager.isDownloading && pluginList.activePlugin == model ) {
-                            return false;
-                        } else if ( model.required ) {
-                            return false;
-                        } else {
-                            return true;
-                        }
-                    }
-                    anchors.right: parent.right
-                    style: ButtonStyle {
-                        background: Rectangle {
-                            color: "transparent"
-                            implicitWidth: 30
-                            implicitHeight: 30
-                        }
-                        label: Text {
-                            verticalAlignment: Text.AlignVCenter
-                            color: "grey"
-                            text: control.text
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-                    }
-
-
-
-                    // For the disable option:
-                    // onClicked: pluginList.model.setEnabled(model.id, checked)
-
-                    onClicked: {
-                        if ( !removeDropDown.open ) {
-                            removeDropDown.open = true
-                        }
-                        else {
-                            removeDropDown.open = false
-                        }
-                    }
-                }
-
-                Rectangle {
-                    id: divider
-                    width: 1
-                    height: parent.height
-                    anchors.right: removeDropDown.left
-                    color: UM.Theme.getColor("lining")
-                }
-
-                Column {
-                    id: options
-                    anchors {
-                        top: removeButton.bottom
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: childrenRect.height
-                    visible: removeDropDown.open
-
-                    Button {
-                        id: disableButton
-                        text: "Remove"
-                        height: 30
-                        width: parent.width
-                        onClicked: {
-                            removeDropDown.open = false;
-                            manager.removePlugin( model.id );
-                        }
-                    }
-                }
-            }
-            */
-            /*
-            Button {
-                id: enableButton
-                visible: !model.enabled && model.status == "installed"
-                onClicked: manager.enablePlugin( model.id );
-
-                text: "Enable"
-                style: ButtonStyle {
-                    background: Rectangle {
-                        color: "transparent"
-                        implicitWidth: 96
-                        implicitHeight: 30
-                        border {
-                            width: 1
-                            color: UM.Theme.getColor("lining")
-                        }
-                    }
-                    label: Text {
-                        verticalAlignment: Text.AlignVCenter
-                        color: UM.Theme.getColor("text")
-                        text: control.text
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
+                onClicked: pluginList.model.disablePlugin(model.id)
             }
 
-            Button {
-                id: updateButton
-                visible: model.status == "installed" && model.can_upgrade && model.enabled
-                // visible: model.already_installed
-                text: {
-                    // If currently downloading:
-                    if ( manager.isDownloading && pluginList.activePlugin == model ) {
-                        return catalog.i18nc( "@action:button", "Cancel" );
-                    } else {
-                        return catalog.i18nc("@action:button", "Update");
-                    }
-                }
-                style: ButtonStyle {
-                    background: Rectangle {
-                        color: UM.Theme.getColor("primary")
-                        implicitWidth: 96
-                        implicitHeight: 30
-                        // radius: 4
-                    }
-                    label: Text {
-                        verticalAlignment: Text.AlignVCenter
-                        color: "white"
-                        text: control.text
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
-            }
-            Button {
-                id: externalControls
-                visible: model.status == "available" ? true : false
-                text: {
-                    // If currently downloading:
-                    if ( manager.isDownloading && pluginList.activePlugin == model ) {
-                        return catalog.i18nc( "@action:button", "Cancel" );
-                    } else {
-                        return catalog.i18nc("@action:button", "Install");
-                    }
-                }
-                onClicked: {
-                    if ( manager.isDownloading && pluginList.activePlugin == model ) {
-                        manager.cancelDownload();
-                    } else {
-                        pluginList.activePlugin = model;
-                        manager.downloadAndInstallPlugin( model.file_location );
-                    }
-                }
-                style: ButtonStyle {
-                    background: Rectangle {
-                        color: "transparent"
-                        implicitWidth: 96
-                        implicitHeight: 30
-                        border {
-                            width: 1
-                            color: UM.Theme.getColor("lining")
-                        }
-                    }
-                    label: Text {
-                        verticalAlignment: Text.AlignVCenter
-                        color: "grey"
-                        text: control.text
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
-            }
-            */
             ProgressBar {
                 id: progressbar
                 minimumValue: 0;

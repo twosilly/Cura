@@ -128,7 +128,7 @@ Window {
                 anchors.fill: parent
 
                 model: UM.PluginsModel {
-                    view: view.viewing
+                    view: "available"
                 }
                 delegate: PluginEntry {}
             }
@@ -289,6 +289,12 @@ Window {
                 restartDialog.show();
             }
         }
+        Connections {
+            target: pluginList
+            onEnablePlugin: {
+                console.log("POOP")
+            }
+        }
 
         Window {
             id: restartDialog
@@ -369,6 +375,5 @@ Window {
                 }
             }
         }
-
     }
 }
