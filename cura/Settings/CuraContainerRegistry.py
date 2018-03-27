@@ -52,10 +52,6 @@ class CuraContainerRegistry(ContainerRegistry):
     #   Global stack based on metadata information.
     @override(ContainerRegistry)
     def addContainer(self, container):
-        # Note: Intentional check with type() because we want to ignore subclasses
-        if type(container) == ContainerStack:
-            container = self._convertContainerStack(container)
-
         if isinstance(container, InstanceContainer) and type(container) != type(self.getEmptyInstanceContainer()):
             # Check against setting version of the definition.
             required_setting_version = CuraApplication.SettingVersion
@@ -408,32 +404,6 @@ class CuraContainerRegistry(ContainerRegistry):
         if global_container_stack:
             return parseBool(global_container_stack.getMetaDataEntry("has_machine_quality", False))
         return False
-
-    ##  Convert an "old-style" pure ContainerStack to either an Extruder or Global stack.
-    def _convertContainerStack(self, container):
-        assert type(container) == ContainerStack
-
-        container_type = container.getMetaDataEntry("type")
-        if container_type not in ("extruder_train", "machine"):
-            # It is not an extruder or machine, so do nothing with the stack
-            return container
-
-        Logger.log("d", "Converting ContainerStack {stack} to {type}", stack = container.getId(), type = container_type)
-
-        new_stack = None
-        if container_type == "extruder_train":
-            new_stack = ExtruderStack.ExtruderStack(container.getId())
-        else:
-            new_stack = GlobalStack.GlobalStack(container.getId())
-
-        container_contents = container.serialize()
-        new_stack.deserialize(container_contents)
-
-        # Delete the old configuration file so we do not get double stacks
-        if os.path.isfile(container.getPath()):
-            os.remove(container.getPath())
-
-        return new_stack
 
     def _registerSingleExtrusionMachinesExtruderStacks(self):
         machines = self.findContainerStacks(type = "machine", machine_extruder_trains = {"0": "fdmextruder"})
