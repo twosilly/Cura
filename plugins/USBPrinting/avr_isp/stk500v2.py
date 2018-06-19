@@ -10,7 +10,7 @@ import time
 from serial import Serial   # type: ignore
 from serial import SerialException
 from serial import SerialTimeoutException
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 from . import ispBase, intelHex
 

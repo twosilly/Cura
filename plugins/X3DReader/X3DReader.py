@@ -6,7 +6,7 @@ from math import pi, sin, cos, sqrt
 import numpy
 
 from UM.Job import Job
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Math.Matrix import Matrix
 from UM.Math.Vector import Vector
 from UM.Mesh.MeshBuilder import MeshBuilder

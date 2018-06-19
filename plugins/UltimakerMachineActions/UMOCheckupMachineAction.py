@@ -3,7 +3,7 @@ from cura.PrinterOutputDevice import PrinterOutputDevice
 from UM.Application import Application
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, pyqtProperty
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.i18n import i18nCatalog
 catalog = i18nCatalog("cura")
 

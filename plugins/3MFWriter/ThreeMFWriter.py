@@ -3,7 +3,7 @@
 
 from UM.Mesh.MeshWriter import MeshWriter
 from UM.Math.Vector import Vector
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Math.Matrix import Matrix
 from UM.Application import Application
 from UM.Scene.SceneNode import SceneNode

@@ -6,7 +6,7 @@ import os
 from PyQt5.QtCore import QObject, pyqtSlot
 
 from UM.Extension import Extension
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 
 class UserAgreement(QObject, Extension):

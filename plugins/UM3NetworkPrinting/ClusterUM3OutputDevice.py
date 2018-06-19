@@ -3,7 +3,7 @@
 
 from UM.FileHandler.FileWriter import FileWriter #To choose based on the output file mode (text vs. binary).
 from UM.FileHandler.WriteFileJob import WriteFileJob #To call the file writer asynchronously.
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Application import Application
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.i18n import i18nCatalog
@@ -25,7 +25,7 @@ from PyQt5.QtNetwork import QNetworkRequest, QNetworkReply
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import pyqtSlot, QUrl, pyqtSignal, pyqtProperty, QObject
 
-from time import time, sleep
+from time import time
 from datetime import datetime
 from typing import Optional, Dict, List
 
@@ -197,8 +197,6 @@ class ClusterUM3OutputDevice(NetworkedPrinterOutputDevice):
 
         yield True #Return that we had success!
         yield #To prevent having to catch the StopIteration exception.
-
-    from cura.Utils.Threading import call_on_qt_thread
 
     def _sendPrintJobWaitOnWriteJobFinished(self, job):
         self._write_job_progress_message.hide()

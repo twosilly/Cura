@@ -9,8 +9,9 @@ import sys
 from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
 
+import UM.Util
 from UM.Resources import Resources
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from cura.CuraApplication import CuraApplication
 import UM.Dictionary
 from UM.Settings.InstanceContainer import InstanceContainer
@@ -776,9 +777,6 @@ class XmlMaterialProfile(InstanceContainer):
     def deserializeMetadata(cls, serialized: str, container_id: str) -> List[Dict[str, Any]]:
         result_metadata = [] #All the metadata that we found except the base (because the base is returned).
 
-        #Update the serialized data to the latest version.
-        serialized = cls._updateSerialized(serialized)
-
         base_metadata = {
             "type": "material",
             "status": "unknown", #TODO: Add material verification.
@@ -958,7 +956,7 @@ class XmlMaterialProfile(InstanceContainer):
         key = instance.definition.key
         if key in self.__material_settings_setting_map.values():
             # Setting has a key in the stabndard namespace
-            key = UM.Dictionary.findKey(self.__material_settings_setting_map, instance.definition.key)
+            key = UM.Util.findKeyInDict(self.__material_settings_setting_map, instance.definition.key)
             tag_name = "setting"
         elif key not in self.__material_properties_setting_map.values() and key not in self.__material_metadata_setting_map.values():
             # Setting is not in the standard namespace, and not a material property (eg diameter) or metadata (eg GUID)

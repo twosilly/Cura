@@ -5,7 +5,7 @@ See: http://en.wikipedia.org/wiki/Intel_HEX
 This is a python 3 conversion of the code created by David Braam for the Cura project.
 """
 import io
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 def readHex(filename):
     """

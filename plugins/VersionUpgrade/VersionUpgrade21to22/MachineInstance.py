@@ -1,8 +1,8 @@
 # Copyright (c) 2016 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 
-import UM.VersionUpgrade #To indicate that a file is of incorrect format.
-import UM.VersionUpgradeManager #To schedule more files to be upgraded.
+import UM.VersionUpdate.PerFileVersionUpgrade  #To indicate that a file is of incorrect format.
+import UM.VersionUpdate.VersionUpgradeManager  #To schedule more files to be upgraded.
 from UM.Resources import Resources #To get the config storage path.
 
 import configparser #To read config files.

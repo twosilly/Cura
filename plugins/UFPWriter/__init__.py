@@ -3,7 +3,7 @@
 
 import sys
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 try:
     from . import UFPWriter
 except ImportError:

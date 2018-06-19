@@ -3,22 +3,22 @@
 
 from collections import defaultdict
 import threading
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from PyQt5.QtCore import pyqtProperty
-
-from UM.Application import Application
 from UM.Decorators import override
-
+from UM.Logging.Logger import Logger
 from UM.MimeTypeDatabase import MimeType, MimeTypeDatabase
 from UM.Settings.ContainerStack import ContainerStack
 from UM.Settings.SettingInstance import InstanceState
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Settings.Interfaces import PropertyEvaluationContext
-from UM.Logger import Logger
 
 from . import Exceptions
 from .CuraContainerStack import CuraContainerStack
+
+if TYPE_CHECKING:
+    from .ExtruderStack import ExtruderStack
+
 
 ##  Represents the Global or Machine stack and its related containers.
 #
@@ -36,10 +36,7 @@ class GlobalStack(CuraContainerStack):
         # Per thread we have our own resolving_settings, or strange things sometimes occur.
         self._resolving_settings = defaultdict(set)  # keys are thread names
 
-    ##  Get the list of extruders of this stack.
-    #
-    #   \return The extruders registered with this stack.
-    @pyqtProperty("QVariantMap")
+    @property
     def extruders(self) -> Dict[str, "ExtruderStack"]:
         return self._extruders
 
@@ -60,18 +57,18 @@ class GlobalStack(CuraContainerStack):
     #
     #   \throws Exceptions.TooManyExtrudersError Raised when trying to add an extruder while we
     #                                            already have the maximum number of extruders.
-    def addExtruder(self, extruder: ContainerStack) -> None:
-        position = extruder.getMetaDataEntry("position")
+    def addExtruder(self, extruder_stack: "ExtruderStack") -> None:
+        position = extruder_stack.getMetaDataEntry("position")
         if position is None:
-            Logger.log("w", "No position defined for extruder {extruder}, cannot add it to stack {stack}", extruder = extruder.id, stack = self.id)
+            Logger.log("w", "No position defined for extruder {extruder}, cannot add it to stack {stack}", extruder = extruder_stack.getId(), stack = self.getId())
             return
 
-        if any(item.getId() == extruder.id for item in self._extruders.values()):
-            Logger.log("w", "Extruder [%s] has already been added to this stack [%s]", extruder.id, self.getId())
+        if any(item.getId() == extruder_stack.getId() for item in self._extruders.values()):
+            Logger.log("w", "Extruder [%s] has already been added to this stack [%s]", extruder_stack.getId(), self.getId())
             return
 
-        self._extruders[position] = extruder
-        Logger.log("i", "Extruder[%s] added to [%s] at position [%s]", extruder.id, self.id, position)
+        self._extruders[position] = extruder_stack
+        Logger.log("i", "Extruder[%s] added to [%s] at position [%s]", extruder_stack.getId(), self.getId(), position)
 
     ##  Overridden from ContainerStack
     #
@@ -106,6 +103,7 @@ class GlobalStack(CuraContainerStack):
         limit_to_extruder = super().getProperty(key, "limit_to_extruder", context)
         if limit_to_extruder is not None:
             if limit_to_extruder == -1:
+                from UM.Application import Application
                 limit_to_extruder = int(Application.getInstance().getMachineManager().defaultExtruderPosition)
             limit_to_extruder = str(limit_to_extruder)
         if limit_to_extruder is not None and limit_to_extruder != "-1" and limit_to_extruder in self._extruders:
@@ -125,7 +123,7 @@ class GlobalStack(CuraContainerStack):
     #
     #   This will simply raise an exception since the Global stack cannot have a next stack.
     @override(ContainerStack)
-    def setNextStack(self, stack: CuraContainerStack, connect_signals: bool = True) -> None:
+    def setNextStack(self, stack: CuraContainerStack) -> None:
         raise Exceptions.InvalidOperationError("Global stack cannot have a next stack!")
 
     # protected:

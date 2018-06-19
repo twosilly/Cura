@@ -6,9 +6,9 @@ import platform
 import time
 import serial.tools.list_ports
 
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtProperty, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Resources import Resources
 from UM.Signal import Signal, signalemitter
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin

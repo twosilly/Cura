@@ -16,7 +16,7 @@ class PerObjectContainerStack(CuraContainerStack):
             context = PropertyEvaluationContext()
         context.pushContainer(self)
 
-        global_stack = Application.getInstance().getGlobalContainerStack()
+        global_stack = Application.getInstance().getMachineManager().getActiveMachine().global_stack
 
         # Return the user defined value if present, otherwise, evaluate the value according to the default routine.
         if self.getContainer(0).hasProperty(key, property_name):
@@ -51,16 +51,3 @@ class PerObjectContainerStack(CuraContainerStack):
         result = super().getProperty(key, property_name, context)
         context.popContainer()
         return result
-
-    @override(CuraContainerStack)
-    def setNextStack(self, stack: CuraContainerStack):
-        super().setNextStack(stack)
-
-        # trigger signal to re-evaluate all default settings
-        for key, instance in self.getContainer(0)._instances.items():
-            # only evaluate default settings
-            if instance.state != InstanceState.Default:
-                continue
-
-            self._collectPropertyChanges(key, "value")
-        self._emitCollectedPropertyChanges()

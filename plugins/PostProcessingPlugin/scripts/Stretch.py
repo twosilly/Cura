@@ -9,8 +9,7 @@ WARNING This script has never been tested with several extruders
 """
 from ..Script import Script
 import numpy as np
-from UM.Logger import Logger
-from UM.Application import Application
+from UM.Logging.Logger import Logger
 import re
 from cura.Settings.ExtruderManager import ExtruderManager
 

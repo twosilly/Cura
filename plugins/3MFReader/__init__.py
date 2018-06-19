@@ -3,7 +3,7 @@
 from typing import Dict
 import sys
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 try:
     from . import ThreeMFReader
 except ImportError:
@@ -12,14 +12,14 @@ except ImportError:
 from . import ThreeMFWorkspaceReader
 
 from UM.i18n import i18nCatalog
-from UM.Platform import Platform
+from UM.OS import OS
 
 catalog = i18nCatalog("cura")
 
 
 def getMetaData() -> Dict:
     # Workarround for osx not supporting double file extensions correctly.
-    if Platform.isOSX():
+    if OS.isOSX():
         workspace_extension = "3mf"
     else:
         workspace_extension = "curaproject.3mf"

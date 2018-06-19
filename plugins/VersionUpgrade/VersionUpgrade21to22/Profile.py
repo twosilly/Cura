@@ -6,8 +6,8 @@ import io #To write config files to strings as if they were files.
 from typing import Dict
 from typing import List
 
-import UM.VersionUpgrade
-from UM.Logger import Logger
+import UM.VersionUpdate.PerFileVersionUpgrade
+
 
 ##  Creates a new profile instance by parsing a serialised profile in version 1
 #   of the file format.

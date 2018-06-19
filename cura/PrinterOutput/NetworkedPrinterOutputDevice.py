@@ -2,14 +2,14 @@
 # Cura is released under the terms of the LGPLv3 or higher.
 
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 from cura.PrinterOutputDevice import PrinterOutputDevice, ConnectionState
 
 from PyQt5.QtNetwork import QHttpMultiPart, QHttpPart, QNetworkRequest, QNetworkAccessManager, QNetworkReply
-from PyQt5.QtCore import pyqtProperty, pyqtSignal, pyqtSlot, pyqtSignal, QUrl, QCoreApplication
+from PyQt5.QtCore import pyqtProperty, pyqtSlot, pyqtSignal, QUrl, QCoreApplication
 from time import time
-from typing import Callable, Any, Optional, Dict, Tuple
+from typing import Callable, Any, Optional, Dict
 from enum import IntEnum
 from typing import List
 

@@ -2,7 +2,7 @@
 # under the terms of the AGPLv3 or higher
 from typing import Optional, Tuple
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from ..Script import Script
 
 class FilamentChange(Script):

@@ -6,7 +6,7 @@ from UM.PluginRegistry import PluginRegistry
 from UM.Resources import Resources
 from UM.Application import Application
 from UM.Extension import Extension
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 import configparser #The script lists are stored in metadata as serialised config files.
 import io #To allow configparser to write to a string.

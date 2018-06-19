@@ -11,7 +11,7 @@ from PyQt5.QtCore import QUrl, QObject, pyqtProperty, pyqtSignal, pyqtSlot
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.PluginRegistry import PluginRegistry
 from UM.Extension import Extension
 from UM.i18n import i18nCatalog

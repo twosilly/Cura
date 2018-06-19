@@ -10,11 +10,11 @@ from PyQt5.QtWidgets import QApplication
 from UM.Application import Application
 from UM.Event import Event, KeyEvent
 from UM.Job import Job
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Math.Color import Color
 from UM.Mesh.MeshBuilder import MeshBuilder
 from UM.Message import Message
-from UM.Platform import Platform
+from UM.OS import OS
 from UM.PluginRegistry import PluginRegistry
 from UM.Resources import Resources
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
@@ -443,7 +443,7 @@ class SimulationView(View):
             # It seems to be a timing issue that the currentContext can somehow be empty, but I have no clue why.
             # This fix tries to reschedule the view changing event call on the Qt thread again if the current OpenGL
             # context is None.
-            if Platform.isOSX():
+            if OS.isOSX():
                 if QOpenGLContext.currentContext() is None:
                     Logger.log("d", "current context of OpenGL is empty on Mac OS X, will try to create shaders later")
                     CuraApplication.getInstance().callLater(lambda e=event: self.event(e))

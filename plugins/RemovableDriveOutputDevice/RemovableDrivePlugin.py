@@ -6,7 +6,7 @@ import threading
 import time
 
 # Uranium/Messaging
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 # Uranium/IO
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin

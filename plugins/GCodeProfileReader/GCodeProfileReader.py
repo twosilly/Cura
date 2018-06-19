@@ -6,7 +6,7 @@ import json
 
 from UM.Settings.ContainerFormatError import ContainerFormatError
 from UM.Settings.InstanceContainer import InstanceContainer
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.i18n import i18nCatalog
 catalog = i18nCatalog("cura")
 

@@ -1,31 +1,26 @@
 # Copyright (c) 2018 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 
-from cura.Scene.CuraSceneNode import CuraSceneNode
-from cura.Settings.ExtruderManager import ExtruderManager
+import copy
+import math
+from typing import List, Optional
+
+import numpy
+
 from UM.i18n import i18nCatalog
-from UM.Scene.Platform import Platform
 from UM.Scene.Iterator.BreadthFirstIterator import BreadthFirstIterator
 from UM.Scene.SceneNode import SceneNode
-from UM.Resources import Resources
 from UM.Mesh.MeshBuilder import MeshBuilder
 from UM.Math.Vector import Vector
 from UM.Math.Matrix import Matrix
 from UM.Math.Color import Color
 from UM.Math.AxisAlignedBox import AxisAlignedBox
 from UM.Math.Polygon import Polygon
-from UM.Message import Message
-from UM.Signal import Signal
-from PyQt5.QtCore import QTimer
-from UM.View.RenderBatch import RenderBatch
-from UM.View.GL.OpenGL import OpenGL
+
+from cura.Scene.CuraSceneNode import CuraSceneNode
+
 catalog = i18nCatalog("cura")
 
-import numpy
-import math
-import copy
-
-from typing import List, Optional
 
 # Setting for clearance around the prime
 PRIME_CLEARANCE = 6.5
@@ -33,12 +28,12 @@ PRIME_CLEARANCE = 6.5
 
 ##  Build volume is a special kind of node that is responsible for rendering the printable area & disallowed areas.
 class BuildVolume(SceneNode):
-    raftThicknessChanged = Signal()
 
     def __init__(self, application, parent = None):
         super().__init__(parent)
         self._application = application
         self._machine_manager = self._application.getMachineManager()
+        self._extruder_manager = self._application.getExtruderManager()
 
         self._volume_outline_color = None
         self._x_axis_color = None
@@ -74,85 +69,18 @@ class BuildVolume(SceneNode):
         self._raft_thickness = 0.0
         self._extra_z_clearance = 0.0
         self._adhesion_type = None
-        self._platform = Platform(self)
-
-        self._build_volume_message = Message(catalog.i18nc("@info:status",
-            "The build volume height has been reduced due to the value of the"
-            " \"Print Sequence\" setting to prevent the gantry from colliding"
-            " with printed models."), title = catalog.i18nc("@info:title", "Build Volume"))
 
         self._global_container_stack = None
-        self._application.globalContainerStackChanged.connect(self._onStackChanged)
-        self._onStackChanged()
 
         self._engine_ready = False
-        self._application.engineCreatedSignal.connect(self._onEngineCreated)
 
         self._has_errors = False
-        self._application.getController().getScene().sceneChanged.connect(self._onSceneChanged)
 
         #Objects loaded at the moment. We are connected to the property changed events of these objects.
         self._scene_objects = set()
 
-        self._scene_change_timer = QTimer()
-        self._scene_change_timer.setInterval(100)
-        self._scene_change_timer.setSingleShot(True)
-        self._scene_change_timer.timeout.connect(self._onSceneChangeTimerFinished)
-
-        self._setting_change_timer = QTimer()
-        self._setting_change_timer.setInterval(150)
-        self._setting_change_timer.setSingleShot(True)
-        self._setting_change_timer.timeout.connect(self._onSettingChangeTimerFinished)
-
-        # Must be after setting _build_volume_message, apparently that is used in getMachineManager.
-        # activeQualityChanged is always emitted after setActiveVariant, setActiveMaterial and setActiveQuality.
-        # Therefore this works.
-        self._machine_manager.activeQualityChanged.connect(self._onStackChanged)
-
-        # This should also ways work, and it is semantically more correct,
-        # but it does not update the disallowed areas after material change
-        self._machine_manager.activeStackChanged.connect(self._onStackChanged)
-
-        # Enable and disable extruder
-        self._machine_manager.extruderChanged.connect(self.updateNodeBoundaryCheck)
-
         # list of settings which were updated
         self._changed_settings_since_last_rebuild = []
-
-    def _onSceneChanged(self, source):
-        if self._global_container_stack:
-            self._scene_change_timer.start()
-
-    def _onSceneChangeTimerFinished(self):
-        root = self._application.getController().getScene().getRoot()
-        new_scene_objects = set(node for node in BreadthFirstIterator(root) if node.callDecoration("isSliceable"))
-        if new_scene_objects != self._scene_objects:
-            for node in new_scene_objects - self._scene_objects: #Nodes that were added to the scene.
-                self._updateNodeListeners(node)
-                node.decoratorsChanged.connect(self._updateNodeListeners)  # Make sure that decoration changes afterwards also receive the same treatment
-            for node in self._scene_objects - new_scene_objects: #Nodes that were removed from the scene.
-                per_mesh_stack = node.callDecoration("getStack")
-                if per_mesh_stack:
-                    per_mesh_stack.propertyChanged.disconnect(self._onSettingPropertyChanged)
-                active_extruder_changed = node.callDecoration("getActiveExtruderChangedSignal")
-                if active_extruder_changed is not None:
-                    node.callDecoration("getActiveExtruderChangedSignal").disconnect(self._updateDisallowedAreasAndRebuild)
-                node.decoratorsChanged.disconnect(self._updateNodeListeners)
-            self._updateDisallowedAreasAndRebuild()  # make sure we didn't miss anything before we updated the node listeners
-
-            self._scene_objects = new_scene_objects
-            self._onSettingPropertyChanged("print_sequence", "value")  # Create fake event, so right settings are triggered.
-
-    ##  Updates the listeners that listen for changes in per-mesh stacks.
-    #
-    #   \param node The node for which the decorators changed.
-    def _updateNodeListeners(self, node: SceneNode):
-        per_mesh_stack = node.callDecoration("getStack")
-        if per_mesh_stack:
-            per_mesh_stack.propertyChanged.connect(self._onSettingPropertyChanged)
-        active_extruder_changed = node.callDecoration("getActiveExtruderChangedSignal")
-        if active_extruder_changed is not None:
-            active_extruder_changed.connect(self._updateDisallowedAreasAndRebuild)
 
     def setWidth(self, width):
         if width is not None:
@@ -178,30 +106,6 @@ class BuildVolume(SceneNode):
 
     def setDisallowedAreas(self, areas: List[Polygon]):
         self._disallowed_areas = areas
-
-    def render(self, renderer):
-        if not self.getMeshData():
-            return True
-
-        if not self._shader:
-            self._shader = OpenGL.getInstance().createShaderProgram(Resources.getPath(Resources.Shaders, "default.shader"))
-            self._grid_shader = OpenGL.getInstance().createShaderProgram(Resources.getPath(Resources.Shaders, "grid.shader"))
-            theme = self._application.getTheme()
-            self._grid_shader.setUniformValue("u_plateColor", Color(*theme.getColor("buildplate").getRgb()))
-            self._grid_shader.setUniformValue("u_gridColor0", Color(*theme.getColor("buildplate_grid").getRgb()))
-            self._grid_shader.setUniformValue("u_gridColor1", Color(*theme.getColor("buildplate_grid_minor").getRgb()))
-
-        renderer.queueNode(self, mode = RenderBatch.RenderMode.Lines)
-        renderer.queueNode(self, mesh = self._origin_mesh, backface_cull = True)
-        renderer.queueNode(self, mesh = self._grid_mesh, shader = self._grid_shader, backface_cull = True)
-        if self._disallowed_area_mesh:
-            renderer.queueNode(self, mesh = self._disallowed_area_mesh, shader = self._shader, transparent = True, backface_cull = True, sort = -9)
-
-        if self._error_mesh:
-            renderer.queueNode(self, mesh=self._error_mesh, shader=self._shader, transparent=True,
-                               backface_cull=True, sort=-8)
-
-        return True
 
     ##  For every sliceable node, update node._outside_buildarea
     #
@@ -290,11 +194,8 @@ class BuildVolume(SceneNode):
             node.setOutsideBuildArea(False)
 
     ##  Recalculates the build volume & disallowed areas.
-    def rebuild(self):
+    def recalculateBuildVolume(self):
         if not self._width or not self._height or not self._depth:
-            return
-
-        if not self._application._qml_engine:
             return
 
         if not self._volume_outline_color:
@@ -496,13 +397,11 @@ class BuildVolume(SceneNode):
         # Rounding errors do not matter, we check if raft_thickness has changed at all
         if old_raft_thickness != self._raft_thickness:
             self.setPosition(Vector(0, -self._raft_thickness, 0), SceneNode.TransformSpace.World)
-            self.raftThicknessChanged.emit()
 
     def _updateExtraZClearance(self) -> None:
         extra_z = 0.0
-        extruders = ExtruderManager.getInstance().getUsedExtruderStacks()
         use_extruders = False
-        for extruder in extruders:
+        for extruder in self._global_container_stack.extruders.values():
             if extruder.getProperty("retraction_hop_enabled", "value"):
                 retraction_hop = extruder.getProperty("retraction_hop", "value")
                 if extra_z is None or retraction_hop > extra_z:
@@ -515,94 +414,15 @@ class BuildVolume(SceneNode):
         if extra_z != self._extra_z_clearance:
             self._extra_z_clearance = extra_z
 
-    ##  Update the build volume visualization
-    def _onStackChanged(self):
-        if self._global_container_stack:
-            self._global_container_stack.propertyChanged.disconnect(self._onSettingPropertyChanged)
-            extruders = ExtruderManager.getInstance().getMachineExtruders(self._global_container_stack.getId())
-            for extruder in extruders:
-                extruder.propertyChanged.disconnect(self._onSettingPropertyChanged)
-
-        self._global_container_stack = self._application.getGlobalContainerStack()
-
-        if self._global_container_stack:
-            self._global_container_stack.propertyChanged.connect(self._onSettingPropertyChanged)
-            extruders = ExtruderManager.getInstance().getMachineExtruders(self._global_container_stack.getId())
-            for extruder in extruders:
-                extruder.propertyChanged.connect(self._onSettingPropertyChanged)
-
-            self._width = self._global_container_stack.getProperty("machine_width", "value")
-            machine_height = self._global_container_stack.getProperty("machine_height", "value")
-            if self._global_container_stack.getProperty("print_sequence", "value") == "one_at_a_time" and len(self._scene_objects) > 1:
-                self._height = min(self._global_container_stack.getProperty("gantry_height", "value"), machine_height)
-                if self._height < machine_height:
-                    self._build_volume_message.show()
-                else:
-                    self._build_volume_message.hide()
-            else:
-                self._height = self._global_container_stack.getProperty("machine_height", "value")
-                self._build_volume_message.hide()
-            self._depth = self._global_container_stack.getProperty("machine_depth", "value")
-            self._shape = self._global_container_stack.getProperty("machine_shape", "value")
-
-            self._updateDisallowedAreas()
-            self._updateRaftThickness()
-            self._updateExtraZClearance()
-
-            if self._engine_ready:
-                self.rebuild()
-
     def _onEngineCreated(self):
         self._engine_ready = True
-        self.rebuild()
+        self.recalculateBuildVolume()
 
     def _onSettingChangeTimerFinished(self):
-        rebuild_me = False
-        update_disallowed_areas = False
-        update_raft_thickness = False
+        rebuild_me = True
+        update_disallowed_areas = True
+        update_raft_thickness = True
         update_extra_z_clearance = True
-
-        for setting_key in self._changed_settings_since_last_rebuild:
-
-            if setting_key == "print_sequence":
-                machine_height = self._global_container_stack.getProperty("machine_height", "value")
-                if self._application.getGlobalContainerStack().getProperty("print_sequence", "value") == "one_at_a_time" and len(self._scene_objects) > 1:
-                    self._height = min(self._global_container_stack.getProperty("gantry_height", "value"), machine_height)
-                    if self._height < machine_height:
-                        self._build_volume_message.show()
-                    else:
-                        self._build_volume_message.hide()
-                else:
-                    self._height = self._global_container_stack.getProperty("machine_height", "value")
-                    self._build_volume_message.hide()
-                update_disallowed_areas = True
-                rebuild_me = True
-
-            # sometimes the machine size or shape settings are adjusted on the active machine, we should reflect this
-            if setting_key in self._machine_settings:
-                self._height = self._global_container_stack.getProperty("machine_height", "value")
-                self._width = self._global_container_stack.getProperty("machine_width", "value")
-                self._depth = self._global_container_stack.getProperty("machine_depth", "value")
-                self._shape = self._global_container_stack.getProperty("machine_shape", "value")
-                update_extra_z_clearance = True
-                update_disallowed_areas = True
-                rebuild_me = True
-
-            if setting_key in self._skirt_settings + self._prime_settings + self._tower_settings + self._ooze_shield_settings + self._distance_settings + self._extruder_settings:
-                update_disallowed_areas = True
-                rebuild_me = True
-
-            if setting_key in self._raft_settings:
-                update_raft_thickness = True
-                rebuild_me = True
-
-            if setting_key in self._extra_z_settings:
-                update_extra_z_clearance = True
-                rebuild_me = True
-
-            if setting_key in self._limit_to_extruder_settings:
-                update_disallowed_areas = True
-                rebuild_me = True
 
         # We only want to update all of them once.
         if update_disallowed_areas:
@@ -615,18 +435,10 @@ class BuildVolume(SceneNode):
             self._updateExtraZClearance()
 
         if rebuild_me:
-            self.rebuild()
+            self.recalculateBuildVolume()
 
         # We just did a rebuild, reset the list.
         self._changed_settings_since_last_rebuild = []
-
-    def _onSettingPropertyChanged(self, setting_key: str, property_name: str):
-        if property_name != "value":
-            return
-
-        if setting_key not in self._changed_settings_since_last_rebuild:
-            self._changed_settings_since_last_rebuild.append(setting_key)
-            self._setting_change_timer.start()
 
     def hasErrors(self) -> bool:
         return self._has_errors
@@ -642,7 +454,7 @@ class BuildVolume(SceneNode):
         self._updateDisallowedAreas()
         self._updateRaftThickness()
         self._updateExtraZClearance()
-        self.rebuild()
+        self.recalculateBuildVolume()
 
     def _updateDisallowedAreas(self):
         if not self._global_container_stack:
@@ -650,14 +462,13 @@ class BuildVolume(SceneNode):
 
         self._error_areas = []
 
-        extruder_manager = ExtruderManager.getInstance()
-        used_extruders = extruder_manager.getUsedExtruderStacks()
+        used_extruders = self._extruder_manager.getUsedExtruderStacks()
         disallowed_border_size = self.getEdgeDisallowedSize()
 
         if not used_extruders:
             # If no extruder is used, assume that the active extruder is used (else nothing is drawn)
-            if extruder_manager.getActiveExtruderStack():
-                used_extruders = [extruder_manager.getActiveExtruderStack()]
+            if self._extruder_manager.getActiveExtruderStack():
+                used_extruders = [self._extruder_manager.getActiveExtruderStack()]
             else:
                 used_extruders = [self._global_container_stack]
 
@@ -744,7 +555,7 @@ class BuildVolume(SceneNode):
             result[extruder.getId()] = []
 
         #Currently, the only normally printed object is the prime tower.
-        if ExtruderManager.getInstance().getResolveOrValue("prime_tower_enable"):
+        if self._extruder_manager.getResolveOrValue("prime_tower_enable"):
             prime_tower_size = self._global_container_stack.getProperty("prime_tower_size", "value")
             machine_width = self._global_container_stack.getProperty("machine_width", "value")
             machine_depth = self._global_container_stack.getProperty("machine_depth", "value")
@@ -822,16 +633,18 @@ class BuildVolume(SceneNode):
     #   \return A dictionary with for each used extruder ID the disallowed areas
     #   where that extruder may not print.
     def _computeDisallowedAreasStatic(self, border_size, used_extruders):
+        global_stack = self._application.getMachineManager().getActiveMachine().global_stack
+
         #Convert disallowed areas to polygons and dilate them.
         machine_disallowed_polygons = []
-        for area in self._global_container_stack.getProperty("machine_disallowed_areas", "value"):
+        for area in global_stack.getProperty("machine_disallowed_areas", "value"):
             polygon = Polygon(numpy.array(area, numpy.float32))
             polygon = polygon.getMinkowskiHull(Polygon.approximatedCircle(border_size))
             machine_disallowed_polygons.append(polygon)
 
         # For certain machines we don't need to compute disallowed areas for each nozzle.
         # So we check here and only do the nozzle offsetting if needed.
-        nozzle_offsetting_for_disallowed_areas = self._global_container_stack.getMetaDataEntry(
+        nozzle_offsetting_for_disallowed_areas = global_stack.getMetaDataEntry(
             "nozzle_offsetting_for_disallowed_areas", True)
 
         result = {}
@@ -858,7 +671,13 @@ class BuildVolume(SceneNode):
             # Only do nozzle offsetting if needed
             if nozzle_offsetting_for_disallowed_areas:
                 #The build volume is defined as the union of the area that all extruders can reach, so we need to know the relative offset to all extruders.
-                for other_extruder in ExtruderManager.getInstance().getActiveExtruderStacks():
+                extruder_stack_list = []
+                for extruder in global_stack.extruders.values():
+                    extruder_stack_list.append(extruder.extruder_stack)
+                for other_extruder in extruder_stack_list:
+                    if other_extruder.getId() == extruder_id:
+                        continue
+
                     other_offset_x = other_extruder.getProperty("machine_nozzle_offset_x", "value")
                     if other_offset_x is None:
                         other_offset_x = 0

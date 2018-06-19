@@ -5,11 +5,11 @@ from UM.Backend.Backend import Backend, BackendState
 from UM.Application import Application
 from UM.Scene.SceneNode import SceneNode
 from UM.Signal import Signal
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Message import Message
 from UM.PluginRegistry import PluginRegistry
 from UM.Resources import Resources
-from UM.Platform import Platform
+from UM.OS import OS
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Qt.Duration import DurationFormat
 from PyQt5.QtCore import QObject, pyqtSlot
@@ -45,14 +45,14 @@ class CuraEngineBackend(QObject, Backend):
         # Find out where the engine is located, and how it is called.
         # This depends on how Cura is packaged and which OS we are running on.
         executable_name = "CuraEngine"
-        if Platform.isWindows():
+        if OS.isWindows():
             executable_name += ".exe"
         default_engine_location = executable_name
         if os.path.exists(os.path.join(Application.getInstallPrefix(), "bin", executable_name)):
             default_engine_location = os.path.join(Application.getInstallPrefix(), "bin", executable_name)
         if hasattr(sys, "frozen"):
             default_engine_location = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), executable_name)
-        if Platform.isLinux() and not default_engine_location:
+        if OS.isLinux() and not default_engine_location:
             if not os.getenv("PATH"):
                 raise OSError("There is something wrong with your Linux installation.")
             for pathdir in os.getenv("PATH").split(os.pathsep):

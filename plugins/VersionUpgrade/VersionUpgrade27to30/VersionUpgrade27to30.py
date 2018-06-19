@@ -7,7 +7,7 @@ import os
 import urllib.parse
 import re
 
-from UM.VersionUpgrade import VersionUpgrade #We're inheriting from this.
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade #We're inheriting from this.
 
 _renamed_themes = {
     "cura": "cura-light"

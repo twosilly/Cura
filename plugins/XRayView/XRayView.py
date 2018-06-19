@@ -5,10 +5,10 @@ import os.path
 from PyQt5.QtGui import QOpenGLContext
 
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Math.Color import Color
 from UM.PluginRegistry import PluginRegistry
-from UM.Platform import Platform
+from UM.OS import OS
 from UM.Event import Event
 from UM.View.View import View
 from UM.Scene.Iterator.BreadthFirstIterator import BreadthFirstIterator
@@ -68,7 +68,7 @@ class XRayView(View):
             # It seems to be a timing issue that the currentContext can somehow be empty, but I have no clue why.
             # This fix tries to reschedule the view changing event call on the Qt thread again if the current OpenGL
             # context is None.
-            if Platform.isOSX():
+            if OS.isOSX():
                 if QOpenGLContext.currentContext() is None:
                     Logger.log("d", "current context of OpenGL is empty on Mac OS X, will try to create shaders later")
                     CuraApplication.getInstance().callLater(lambda e = event: self.event(e))

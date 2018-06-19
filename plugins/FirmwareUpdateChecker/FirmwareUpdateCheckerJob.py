@@ -3,7 +3,7 @@
 
 from UM.Application import Application
 from UM.Message import Message
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Job import Job
 
 import urllib.request

@@ -5,7 +5,7 @@ import gzip
 from io import StringIO, BufferedIOBase #To write the g-code to a temporary buffer, and for typing.
 from typing import List
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Mesh.MeshWriter import MeshWriter #The class we're extending/implementing.
 from UM.PluginRegistry import PluginRegistry
 from UM.Scene.SceneNode import SceneNode #For typing.

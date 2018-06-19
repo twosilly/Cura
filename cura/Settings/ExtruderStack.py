@@ -3,8 +3,6 @@
 
 from typing import Any, TYPE_CHECKING, Optional
 
-from PyQt5.QtCore import pyqtProperty, pyqtSignal
-
 from UM.Application import Application
 from UM.Decorators import override
 from UM.MimeTypeDatabase import MimeType, MimeTypeDatabase
@@ -14,8 +12,8 @@ from UM.Settings.Interfaces import ContainerInterface, PropertyEvaluationContext
 from UM.Util import parseBool
 
 from . import Exceptions
-from .CuraContainerStack import CuraContainerStack, _ContainerIndexes
-from .ExtruderManager import ExtruderManager
+from .CuraContainerIndexes import CuraContainerIndexes
+from .CuraContainerStack import CuraContainerStack
 
 if TYPE_CHECKING:
     from cura.Settings.GlobalStack import GlobalStack
@@ -30,21 +28,11 @@ class ExtruderStack(CuraContainerStack):
 
         self.addMetaDataEntry("type", "extruder_train") # For backward compatibility
 
-        self.propertiesChanged.connect(self._onPropertiesChanged)
-
-    enabledChanged = pyqtSignal()
-
-    ##  Overridden from ContainerStack
-    #
-    #   This will set the next stack and ensure that we register this stack as an extruder.
     @override(ContainerStack)
-    def setNextStack(self, stack: CuraContainerStack, connect_signals: bool = True) -> None:
+    def setNextStack(self, stack: "GlobalStack") -> None:
         super().setNextStack(stack)
         stack.addExtruder(self)
-        self.addMetaDataEntry("machine", stack.id)
-
-        # For backward compatibility: Register the extruder with the Extruder Manager
-        ExtruderManager.getInstance().registerExtruder(self, stack.id)
+        self.addMetaDataEntry("machine", stack.getId())
 
     @override(ContainerStack)
     def getNextStack(self) -> Optional["GlobalStack"]:
@@ -54,9 +42,7 @@ class ExtruderStack(CuraContainerStack):
         if "enabled" not in self._metadata:
             self.addMetaDataEntry("enabled", "True")
         self.setMetaDataEntry("enabled", str(enabled))
-        self.enabledChanged.emit()
 
-    @pyqtProperty(bool, notify = enabledChanged)
     def isEnabled(self):
         return parseBool(self.getMetaDataEntry("enabled", "True"))
 
@@ -71,19 +57,11 @@ class ExtruderStack(CuraContainerStack):
     @property
     def materialDiameter(self) -> float:
         context = PropertyEvaluationContext(self)
-        context.context["evaluate_from_container_index"] = _ContainerIndexes.Variant
+        context.context["evaluate_from_container_index"] = CuraContainerIndexes.Variant
 
         return self.getProperty("material_diameter", "value", context = context)
 
-    ##  Return the approximate filament diameter that the machine requires.
-    #
-    #   The approximate material diameter is the material diameter rounded to
-    #   the nearest millimetre.
-    #
-    #   If the machine has no requirement for the diameter, -1 is returned.
-    #
-    #   \return The approximate filament diameter for the printer
-    @pyqtProperty(float)
+    @property
     def approximateMaterialDiameter(self) -> float:
         return round(float(self.materialDiameter))
 
@@ -138,26 +116,9 @@ class ExtruderStack(CuraContainerStack):
         super().deserialize(contents, file_name)
         if "enabled" not in self.getMetaData():
             self.addMetaDataEntry("enabled", "True")
-        stacks = ContainerRegistry.getInstance().findContainerStacks(id=self.getMetaDataEntry("machine", ""))
+        stacks = ContainerRegistry.getInstance().findContainerStacks(id = self.getMetaDataEntry("machine", ""))
         if stacks:
             self.setNextStack(stacks[0])
-
-    def _onPropertiesChanged(self, key, properties):
-        # When there is a setting that is not settable per extruder that depends on a value from a setting that is,
-        # we do not always get properly informed that we should re-evaluate the setting. So make sure to indicate
-        # something changed for those settings.
-        if not self.getNextStack():
-            return #There are no global settings to depend on.
-        definitions = self.getNextStack().definition.findDefinitions(key = key)
-        if definitions:
-            has_global_dependencies = False
-            for relation in definitions[0].relations:
-                if not getattr(relation.target, "settable_per_extruder", True):
-                    has_global_dependencies = True
-                    break
-
-            if has_global_dependencies:
-                self.getNextStack().propertiesChanged.emit(key, properties)
 
 
 extruder_stack_mime = MimeType(

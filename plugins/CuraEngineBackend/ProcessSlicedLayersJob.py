@@ -10,7 +10,7 @@ from UM.View.GL.OpenGLContext import OpenGLContext
 
 from UM.Message import Message
 from UM.i18n import i18nCatalog
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 from UM.Math.Vector import Vector
 

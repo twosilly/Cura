@@ -3,10 +3,8 @@
 
 from UM.Application import Application
 from UM.Scene.SceneNode import SceneNode
-from UM.Resources import Resources
 from UM.Math.Color import Color
 from UM.Mesh.MeshBuilder import MeshBuilder  # To create a mesh to display the convex hull with.
-from UM.View.GL.OpenGL import OpenGL
 
 
 class ConvexHullNode(SceneNode):
@@ -60,20 +58,6 @@ class ConvexHullNode(SceneNode):
 
     def getWatchedNode(self):
         return self._node
-
-    def render(self, renderer):
-        if not ConvexHullNode.shader:
-            ConvexHullNode.shader = OpenGL.getInstance().createShaderProgram(Resources.getPath(Resources.Shaders, "transparent_object.shader"))
-            ConvexHullNode.shader.setUniformValue("u_diffuseColor", self._color)
-            ConvexHullNode.shader.setUniformValue("u_opacity", 0.6)
-
-        if self.getParent():
-            if self.getMeshData() and isinstance(self._node, SceneNode) and self._node.callDecoration("getBuildPlateNumber") == Application.getInstance().getMultiBuildPlateModel().activeBuildPlate:
-                renderer.queueNode(self, transparent = True, shader = ConvexHullNode.shader, backface_cull = True, sort = -8)
-                if self._convex_hull_head_mesh:
-                    renderer.queueNode(self, shader = ConvexHullNode.shader, transparent = True, mesh = self._convex_hull_head_mesh, backface_cull = True, sort = -8)
-
-        return True
 
     def _onNodeDecoratorsChanged(self, node):
         convex_hull_head = self._node.callDecoration("getConvexHullHead")

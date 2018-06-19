@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from UM.Workspace.WorkspaceReader import WorkspaceReader
 from UM.Application import Application
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Message import Message
 from UM.i18n import i18nCatalog
 from UM.Signal import postponeSignals, CompressTechnique

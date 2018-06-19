@@ -1,17 +1,14 @@
 # Copyright (c) 2016 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 
-from PyQt5.QtCore import QTimer
+import numpy
 
 from UM.Application import Application
 from UM.Math.Polygon import Polygon
 from UM.Scene.SceneNodeDecorator import SceneNodeDecorator
-from UM.Settings.ContainerRegistry import ContainerRegistry
 
-from cura.Settings.ExtruderManager import ExtruderManager
 from cura.Scene import ConvexHullNode
 
-import numpy
 
 ##  The convex hull decorator is a scene node decorator that adds the convex hull functionality to a scene node.
 #   If a scene node has a convex hull decorator, it will have a shadow in which other objects can not be printed.
@@ -26,38 +23,8 @@ class ConvexHullDecorator(SceneNodeDecorator):
 
         # Make sure the timer is created on the main thread
         self._recompute_convex_hull_timer = None
-        Application.getInstance().callLater(self.createRecomputeConvexHullTimer)
 
         self._raft_thickness = 0.0
-        # For raft thickness, DRY
-        self._build_volume = Application.getInstance().getBuildVolume()
-        self._build_volume.raftThicknessChanged.connect(self._onChanged)
-
-        Application.getInstance().globalContainerStackChanged.connect(self._onGlobalStackChanged)
-        Application.getInstance().getController().toolOperationStarted.connect(self._onChanged)
-        Application.getInstance().getController().toolOperationStopped.connect(self._onChanged)
-
-        self._onGlobalStackChanged()
-
-    def createRecomputeConvexHullTimer(self):
-        self._recompute_convex_hull_timer = QTimer()
-        self._recompute_convex_hull_timer.setInterval(200)
-        self._recompute_convex_hull_timer.setSingleShot(True)
-        self._recompute_convex_hull_timer.timeout.connect(self.recomputeConvexHull)
-
-    def setNode(self, node):
-        previous_node = self._node
-        # Disconnect from previous node signals
-        if previous_node is not None and node is not previous_node:
-            previous_node.transformationChanged.disconnect(self._onChanged)
-            previous_node.parentChanged.disconnect(self._onChanged)
-
-        super().setNode(node)
-
-        self._node.transformationChanged.connect(self._onChanged)
-        self._node.parentChanged.connect(self._onChanged)
-
-        self._onChanged()
 
     ## Force that a new (empty) object is created upon copy.
     def __deepcopy__(self, memo):
@@ -120,7 +87,7 @@ class ConvexHullDecorator(SceneNodeDecorator):
     def recomputeConvexHull(self):
         controller = Application.getInstance().getController()
         root = controller.getScene().getRoot()
-        if self._node is None or controller.isToolOperationActive() or not self.__isDescendant(root, self._node):
+        if self._node is None or not self.__isDescendant(root, self._node):
             if self._convex_hull_node:
                 self._convex_hull_node.setParent(None)
                 self._convex_hull_node = None
@@ -131,16 +98,6 @@ class ConvexHullDecorator(SceneNodeDecorator):
             self._convex_hull_node.setParent(None)
         hull_node = ConvexHullNode.ConvexHullNode(self._node, convex_hull, self._raft_thickness, root)
         self._convex_hull_node = hull_node
-
-    def _onSettingValueChanged(self, key, property_name):
-        if property_name != "value": #Not the value that was changed.
-            return
-
-        if key in self._affected_settings:
-            self._onChanged()
-        if key in self._influencing_settings:
-            self._init2DConvexHullCache() #Invalidate the cache.
-            self._onChanged()
 
     def _init2DConvexHullCache(self):
         # Cache for the group code path in _compute2DConvexHull()
@@ -295,49 +252,13 @@ class ConvexHullDecorator(SceneNodeDecorator):
         else:
             return convex_hull
 
-    def _onChanged(self, *args):
-        self._raft_thickness = self._build_volume.getRaftThickness()
-        if not args or args[0] == self._node:
-            self.recomputeConvexHullDelayed()
-
-    def _onGlobalStackChanged(self):
-        if self._global_stack:
-            self._global_stack.propertyChanged.disconnect(self._onSettingValueChanged)
-            self._global_stack.containersChanged.disconnect(self._onChanged)
-            extruders = ExtruderManager.getInstance().getMachineExtruders(self._global_stack.getId())
-            for extruder in extruders:
-                extruder.propertyChanged.disconnect(self._onSettingValueChanged)
-
-        self._global_stack = Application.getInstance().getGlobalContainerStack()
-
-        if self._global_stack:
-            self._global_stack.propertyChanged.connect(self._onSettingValueChanged)
-            self._global_stack.containersChanged.connect(self._onChanged)
-
-            extruders = ExtruderManager.getInstance().getMachineExtruders(self._global_stack.getId())
-            for extruder in extruders:
-                extruder.propertyChanged.connect(self._onSettingValueChanged)
-
-            self._onChanged()
-
     ##   Private convenience function to get a setting from the correct extruder (as defined by limit_to_extruder property).
     def _getSettingProperty(self, setting_key, prop = "value"):
         per_mesh_stack = self._node.callDecoration("getStack")
         if per_mesh_stack:
             return per_mesh_stack.getProperty(setting_key, prop)
 
-        extruder_index = self._global_stack.getProperty(setting_key, "limit_to_extruder")
-        if extruder_index == "-1":
-            # No limit_to_extruder
-            extruder_stack_id = self._node.callDecoration("getActiveExtruder")
-            if not extruder_stack_id:
-                # Decoration doesn't exist
-                extruder_stack_id = ExtruderManager.getInstance().extruderIds["0"]
-            extruder_stack = ContainerRegistry.getInstance().findContainerStacks(id = extruder_stack_id)[0]
-            return extruder_stack.getProperty(setting_key, prop)
-        else:
-            # Limit_to_extruder is set. The global stack handles this then
-            return self._global_stack.getProperty(setting_key, prop)
+        return self._global_stack.getProperty(setting_key, prop)
 
     ## Returns true if node is a descendant or the same as the root node.
     def __isDescendant(self, root, node):

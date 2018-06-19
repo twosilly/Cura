@@ -4,7 +4,7 @@
 import configparser #To parse preference files.
 import io #To serialise the preference files afterwards.
 
-from UM.VersionUpgrade import VersionUpgrade #We're inheriting from this.
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade #We're inheriting from this.
 
 
 # a list of all legacy "Not Supported" quality profiles

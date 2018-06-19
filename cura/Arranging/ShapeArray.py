@@ -1,5 +1,6 @@
-import numpy
 import copy
+
+import numpy
 
 from UM.Math.Polygon import Polygon
 
@@ -117,4 +118,3 @@ class ShapeArray:
         max_col_idx = (idxs[0] - p1[0]) / (p2[0] - p1[0]) * (p2[1] - p1[1]) + p1[1]
         sign = numpy.sign(p2[0] - p1[0])
         return idxs[1] * sign <= max_col_idx * sign
-

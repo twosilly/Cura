@@ -1,0 +1,18 @@
+---
+machine:
+  name: um3
+  type: ultimaker3
+
+  extruders:
+    0:
+      variant_name: AA 0.4
+      material_root_id: generic_nylon
+
+      settings:
+        infill_pattern: grid
+
+
+    1:
+      enabled: false
+      variant_name: AA 0.4
+      material_root_id: generic_abs

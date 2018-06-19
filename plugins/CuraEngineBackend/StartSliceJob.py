@@ -9,7 +9,7 @@ import re
 
 from UM.Job import Job
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 
@@ -126,7 +126,7 @@ class StartSliceJob(Job):
 
         # Don't slice if the buildplate or the nozzle type is incompatible with the materials
         if not Application.getInstance().getMachineManager().variantBuildplateCompatible and \
-                not Application.getInstance().getMachineManager().variantBuildplateUsable:
+                not Application.getInstance().getMachineManager().isBuildplateUsable:
             self.setResult(StartJobResult.MaterialIncompatible)
             return
 

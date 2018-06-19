@@ -3,15 +3,12 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
-
-from UM.Application import Application
-from UM.ConfigurationErrorMessage import ConfigurationErrorMessage
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Util import parseBool
 from UM.Settings.InstanceContainer import InstanceContainer
 
 from cura.Settings.ExtruderStack import ExtruderStack
+from cura.Settings.Utils import merge_container_settings
 
 from .QualityGroup import QualityGroup
 from .QualityNode import QualityNode
@@ -32,35 +29,20 @@ if TYPE_CHECKING:
 # but so far the creation of the tables and maps is very fast and there is no noticeable slowness, we keep it like this
 # because it's simple.
 #
-class QualityManager(QObject):
+class QualityManager:
 
-    qualitiesUpdated = pyqtSignal()
-
-    def __init__(self, container_registry, parent = None):
-        super().__init__(parent)
-        self._application = Application.getInstance()
+    def __init__(self, application):
+        self._application = application
         self._material_manager = self._application.getMaterialManager()
-        self._container_registry = container_registry
+        self._container_registry = self._application.getContainerRegistry()
 
-        self._empty_quality_container = self._application.empty_quality_container
-        self._empty_quality_changes_container = self._application.empty_quality_changes_container
+        self._empty_quality_container = self._container_registry.empty_quality_container
+        self._empty_quality_changes_container = self._container_registry.empty_quality_changes_container
 
         self._machine_variant_material_quality_type_to_quality_dict = {}  # for quality lookup
         self._machine_quality_type_to_quality_changes_dict = {}  # for quality_changes lookup
 
         self._default_machine_definition_id = "fdmprinter"
-
-        self._container_registry.containerMetaDataChanged.connect(self._onContainerMetadataChanged)
-        self._container_registry.containerAdded.connect(self._onContainerMetadataChanged)
-        self._container_registry.containerRemoved.connect(self._onContainerMetadataChanged)
-
-        # When a custom quality gets added/imported, there can be more than one InstanceContainers. In those cases,
-        # we don't want to react on every container/metadata changed signal. The timer here is to buffer it a bit so
-        # we don't react too many time.
-        self._update_timer = QTimer(self)
-        self._update_timer.setInterval(300)
-        self._update_timer.setSingleShot(True)
-        self._update_timer.timeout.connect(self._updateMaps)
 
     def initialize(self):
         # Initialize the lookup tree for quality profiles with following structure:
@@ -85,7 +67,8 @@ class QualityManager(QObject):
 
             # Sanity check: material+variant and is_global_quality cannot be present at the same time
             if is_global_quality and (root_material_id or variant_name):
-                ConfigurationErrorMessage.getInstance().addFaultyContainers(metadata["id"])
+                # TODO
+                raise RuntimeError()
                 continue
 
             if definition_id not in self._machine_variant_material_quality_type_to_quality_dict:
@@ -143,7 +126,6 @@ class QualityManager(QObject):
             machine_node.addQualityChangesMetadata(quality_type, metadata)
 
         Logger.log("d", "Lookup tables updated.")
-        self.qualitiesUpdated.emit()
 
     def _updateMaps(self):
         self.initialize()
@@ -155,9 +137,6 @@ class QualityManager(QObject):
         container_type = container.getMetaDataEntry("type")
         if container_type not in ("quality", "quality_changes"):
             return
-
-        # update the cache table
-        self._update_timer.start()
 
     # Updates the given quality groups' availabilities according to which extruders are being used/ enabled.
     def _updateQualityGroupsAvailability(self, machine: "GlobalStack", quality_group_list):
@@ -347,7 +326,6 @@ class QualityManager(QObject):
     #
     # Remove the given quality changes group.
     #
-    @pyqtSlot(QObject)
     def removeQualityChangesGroup(self, quality_changes_group: "QualityChangesGroup"):
         Logger.log("i", "Removing quality changes group [%s]", quality_changes_group.name)
         for node in quality_changes_group.getAllNodes():
@@ -356,7 +334,6 @@ class QualityManager(QObject):
     #
     # Rename a set of quality changes containers. Returns the new name.
     #
-    @pyqtSlot(QObject, str, result = str)
     def renameQualityChangesGroup(self, quality_changes_group: "QualityChangesGroup", new_name: str) -> str:
         Logger.log("i", "Renaming QualityChangesGroup[%s] to [%s]", quality_changes_group.name, new_name)
         if new_name == quality_changes_group.name:
@@ -377,7 +354,6 @@ class QualityManager(QObject):
     #
     # Duplicates the given quality.
     #
-    @pyqtSlot(str, "QVariantMap")
     def duplicateQualityChanges(self, quality_changes_name, quality_model_item):
         global_stack = self._application.getGlobalContainerStack()
         if not global_stack:
@@ -405,9 +381,8 @@ class QualityManager(QObject):
     #   This will go through the global and extruder stacks and create quality_changes containers from
     #   the user containers in each stack. These then replace the quality_changes containers in the
     #   stack and clear the user settings.
-    @pyqtSlot(str)
     def createQualityChanges(self, base_name):
-        machine_manager = Application.getInstance().getMachineManager()
+        machine_manager = self._application.getMachineManager()
 
         global_stack = machine_manager.activeMachine
         if not global_stack:
@@ -438,9 +413,8 @@ class QualityManager(QObject):
             if isinstance(stack, ExtruderStack):
                 extruder_stack = stack
             new_changes = self._createQualityChanges(quality_type, unique_name, global_stack, extruder_stack)
-            from cura.Settings.ContainerManager import ContainerManager
-            ContainerManager.getInstance()._performMerge(new_changes, quality_changes_container, clear_settings = False)
-            ContainerManager.getInstance()._performMerge(new_changes, user_container)
+            merge_container_settings(new_changes, quality_changes_container, clear_settings = False)
+            merge_container_settings(new_changes, user_container)
 
             self._container_registry.addContainer(new_changes)
 

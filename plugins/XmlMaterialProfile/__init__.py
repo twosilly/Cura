@@ -41,7 +41,7 @@ def register(app):
 
     # add upgrade version
     from cura.CuraApplication import CuraApplication
-    from UM.VersionUpgradeManager import VersionUpgradeManager
+    from UM.VersionUpdate.VersionUpgradeManager import VersionUpgradeManager
     VersionUpgradeManager.getInstance().registerCurrentVersion(
         ("materials", XmlMaterialProfile.XmlMaterialProfile.Version * 1000000 + CuraApplication.SettingVersion),
         (CuraApplication.ResourceTypes.MaterialInstanceContainer, "application/x-ultimaker-material-profile")

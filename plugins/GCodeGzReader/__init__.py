@@ -2,14 +2,14 @@
 # Cura is released under the terms of the LGPLv3 or higher.
 
 from UM.i18n import i18nCatalog
-from UM.Platform import Platform
+from UM.OS import OS
 
 from . import GCodeGzReader
 
 i18n_catalog = i18nCatalog("cura")
 
 def getMetaData():
-    file_extension = "gz" if Platform.isOSX() else "gcode.gz"
+    file_extension = "gz" if OS.isOSX() else "gcode.gz"
     return {
         "mesh_reader": [
             {

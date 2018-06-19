@@ -3,9 +3,8 @@
 
 import xml.etree.ElementTree as ET
 
-from UM.VersionUpgrade import VersionUpgrade
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade
 
-from cura.CuraApplication import CuraApplication
 from .XmlMaterialProfile import XmlMaterialProfile
 
 

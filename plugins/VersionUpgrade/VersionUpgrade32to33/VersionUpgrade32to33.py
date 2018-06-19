@@ -4,7 +4,7 @@
 import configparser #To parse preference files.
 import io #To serialise the preference files afterwards.
 
-from UM.VersionUpgrade import VersionUpgrade #We're inheriting from this.
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade #We're inheriting from this.
 
 ##  Mapping extruder definition IDs to the positions that they are in.
 _EXTRUDER_TO_POSITION = {

@@ -7,14 +7,14 @@ from cura.PrinterOutput.NetworkCamera import NetworkCamera
 from cura.Settings.ContainerManager import ContainerManager
 from cura.Settings.ExtruderManager import ExtruderManager
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Application import Application
 from UM.i18n import i18nCatalog
 from UM.Message import Message
 
 from PyQt5.QtNetwork import QNetworkRequest
-from PyQt5.QtCore import QTimer, QCoreApplication
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QMessageBox
 
 from .LegacyUM3PrinterOutputController import LegacyUM3PrinterOutputController

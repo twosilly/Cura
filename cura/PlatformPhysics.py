@@ -1,48 +1,31 @@
 # Copyright (c) 2015 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 
-from PyQt5.QtCore import QTimer
+import random  # used for list shuffling
 
 from UM.Application import Application
 from UM.Scene.SceneNode import SceneNode
 from UM.Scene.Iterator.BreadthFirstIterator import BreadthFirstIterator
 from UM.Math.Vector import Vector
-from UM.Scene.Selection import Selection
 from UM.Scene.SceneNodeSettings import SceneNodeSettings
 
 from cura.Scene.ConvexHullDecorator import ConvexHullDecorator
-
-from cura.Operations import PlatformPhysicsOperation
-from cura.Scene import ZOffsetDecorator
-
-import random  # used for list shuffling
+from cura.Scene.ZOffsetDecorator import ZOffsetDecorator
 
 
 class PlatformPhysics:
     def __init__(self, controller, volume):
         super().__init__()
         self._controller = controller
-        self._controller.getScene().sceneChanged.connect(self._onSceneChanged)
-        self._controller.toolOperationStarted.connect(self._onToolOperationStarted)
-        self._controller.toolOperationStopped.connect(self._onToolOperationStopped)
         self._build_volume = volume
         self._enabled = True
 
-        self._change_timer = QTimer()
-        self._change_timer.setInterval(100)
-        self._change_timer.setSingleShot(True)
-        self._change_timer.timeout.connect(self._onChangeTimerFinished)
         self._move_factor = 1.1  # By how much should we multiply overlap to calculate a new spot?
         self._max_overlap_checks = 10  # How many times should we try to find a new spot per tick?
         self._minimum_gap = 2  # It is a minimum distance (in mm) between two models, applicable for small models
 
         Application.getInstance().getPreferences().addPreference("physics/automatic_push_free", False)
         Application.getInstance().getPreferences().addPreference("physics/automatic_drop_down", True)
-
-    def _onSceneChanged(self, source):
-        if not source.getMeshData():
-            return
-        self._change_timer.start()
 
     def _onChangeTimerFinished(self):
         if not self._enabled:
@@ -72,7 +55,7 @@ class PlatformPhysics:
             move_vector = Vector()
 
             if Application.getInstance().getPreferences().getValue("physics/automatic_drop_down") and not (node.getParent() and node.getParent().callDecoration("isGroup") or node.getParent() != root) and node.isEnabled(): #If an object is grouped, don't move it down
-                z_offset = node.callDecoration("getZOffset") if node.getDecorator(ZOffsetDecorator.ZOffsetDecorator) else 0
+                z_offset = node.callDecoration("getZOffset") if node.getDecorator(ZOffsetDecorator) else 0
                 move_vector = move_vector.set(y = -bbox.bottom + z_offset)
 
             # If there is no convex hull for the node, start calculating it and continue.
@@ -155,32 +138,9 @@ class PlatformPhysics:
                                 overlap = None
 
             if not Vector.Null.equals(move_vector, epsilon = 1e-5):
+                node.translate(move_vector, SceneNode.TransformSpace.World)
                 transformed_nodes.append(node)
-                op = PlatformPhysicsOperation.PlatformPhysicsOperation(node, move_vector)
-                op.push()
 
         # After moving, we have to evaluate the boundary checks for nodes
         build_volume = Application.getInstance().getBuildVolume()
         build_volume.updateNodeBoundaryCheck()
-
-    def _onToolOperationStarted(self, tool):
-        self._enabled = False
-
-    def _onToolOperationStopped(self, tool):
-        # Selection tool should not trigger an update.
-        if tool.getPluginId() == "SelectionTool":
-            return
-
-        if tool.getPluginId() == "TranslateTool":
-            for node in Selection.getAllSelectedObjects():
-                if node.getBoundingBox().bottom < 0:
-                    if not node.getDecorator(ZOffsetDecorator.ZOffsetDecorator):
-                        node.addDecorator(ZOffsetDecorator.ZOffsetDecorator())
-
-                    node.callDecoration("setZOffset", node.getBoundingBox().bottom)
-                else:
-                    if node.getDecorator(ZOffsetDecorator.ZOffsetDecorator):
-                        node.removeDecorator(ZOffsetDecorator.ZOffsetDecorator)
-
-        self._enabled = True
-        self._onChangeTimerFinished()

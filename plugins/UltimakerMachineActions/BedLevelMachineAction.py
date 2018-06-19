@@ -10,7 +10,7 @@ from UM.FlameProfiler import pyqtSlot
 
 from UM.Application import Application
 from UM.i18n import i18nCatalog
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 catalog = i18nCatalog("cura")
 
 

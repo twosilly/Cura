@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject
 from UM.FlameProfiler import pyqtSlot
 from UM.Application import Application
 from UM.PluginRegistry import PluginRegistry
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 from UM.i18n import i18nCatalog
 catalog = i18nCatalog("cura")

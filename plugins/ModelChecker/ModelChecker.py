@@ -7,7 +7,7 @@ from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, pyqtProperty
 
 from UM.Application import Application
 from UM.Extension import Extension
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Message import Message
 from UM.i18n import i18nCatalog
 from UM.PluginRegistry import PluginRegistry

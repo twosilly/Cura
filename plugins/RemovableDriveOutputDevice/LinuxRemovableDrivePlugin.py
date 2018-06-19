@@ -4,7 +4,7 @@
 
 from . import RemovableDrivePlugin
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 import glob
 import os

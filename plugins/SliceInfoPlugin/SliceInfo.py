@@ -13,7 +13,7 @@ from UM.Application import Application
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Message import Message
 from UM.i18n import i18nCatalog
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.PluginRegistry import PluginRegistry
 from UM.Qt.Duration import DurationFormat
 

@@ -6,7 +6,7 @@ from Charon.OpenMode import OpenMode #To indicate that we want to write to UFP f
 from io import StringIO #For converting g-code to bytes.
 
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Mesh.MeshWriter import MeshWriter #The writer we need to implement.
 from UM.PluginRegistry import PluginRegistry #To get the g-code writer.
 from PyQt5.QtCore import QBuffer

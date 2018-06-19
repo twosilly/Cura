@@ -6,7 +6,7 @@ from PyQt5.QtGui import QDesktopServices
 
 from UM.Extension import Extension
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.i18n import i18nCatalog
 from UM.Settings.ContainerRegistry import ContainerRegistry
 

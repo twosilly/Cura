@@ -2,7 +2,7 @@
 # Cura is released under the terms of the LGPLv3 or higher.
 
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Application import Application
 from UM.Signal import Signal, signalemitter
 from UM.Version import Version

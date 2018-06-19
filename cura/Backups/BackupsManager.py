@@ -2,7 +2,7 @@
 # Cura is released under the terms of the LGPLv3 or higher.
 from typing import Optional
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from cura.Backups.Backup import Backup
 from cura.CuraApplication import CuraApplication
 

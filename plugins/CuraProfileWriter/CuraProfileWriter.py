@@ -2,7 +2,7 @@
 # Copyright (c) 2013 David Braam
 # Uranium is released under the terms of the LGPLv3 or higher.
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from cura.ReaderWriters.ProfileWriter import ProfileWriter
 import zipfile
 

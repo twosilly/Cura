@@ -6,7 +6,7 @@ import json
 import copy
 
 from UM.Mesh.MeshWriter import MeshWriter
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Application import Application
 from UM.Settings.InstanceContainer import InstanceContainer
 

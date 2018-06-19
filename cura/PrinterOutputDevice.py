@@ -1,17 +1,11 @@
 # Copyright (c) 2018 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
-from UM.Decorators import deprecated
-from UM.i18n import i18nCatalog
-from UM.OutputDevice.OutputDevice import OutputDevice
-from PyQt5.QtCore import pyqtProperty, QObject, QTimer, pyqtSignal, QVariant
-from PyQt5.QtWidgets import QMessageBox
-
-from UM.Logger import Logger
-from UM.Signal import signalemitter
-from UM.Application import Application
-
 from enum import IntEnum  # For the connection state tracking.
 from typing import List, Optional
+
+from UM.i18n import i18nCatalog
+from UM.OutputDevice.OutputDevice import OutputDevice
+
 
 MYPY = False
 if MYPY:
@@ -29,23 +23,7 @@ i18n_catalog = i18nCatalog("cura")
 #   functions to actually have the implementation.
 #
 #   For all other uses it should be used in the same way as a "regular" OutputDevice.
-@signalemitter
-class PrinterOutputDevice(QObject, OutputDevice):
-    printersChanged = pyqtSignal()
-    connectionStateChanged = pyqtSignal(str)
-    acceptsCommandsChanged = pyqtSignal()
-
-    # Signal to indicate that the material of the active printer on the remote changed.
-    materialIdChanged = pyqtSignal()
-
-    # # Signal to indicate that the hotend of the active printer on the remote changed.
-    hotendIdChanged = pyqtSignal()
-
-    # Signal to indicate that the info text about the connection has changed.
-    connectionTextChanged = pyqtSignal()
-
-    # Signal to indicate that the configuration of one of the printers has changed.
-    uniqueConfigurationsChanged = pyqtSignal()
+class PrinterOutputDevice(OutputDevice):
 
     def __init__(self, device_id, parent = None):
         super().__init__(device_id = device_id, parent = parent)
@@ -64,35 +42,21 @@ class PrinterOutputDevice(QObject, OutputDevice):
         self._qml_context = None
         self._accepts_commands = False
 
-        self._update_timer = QTimer()
-        self._update_timer.setInterval(2000)  # TODO; Add preference for update interval
-        self._update_timer.setSingleShot(False)
-        self._update_timer.timeout.connect(self._update)
-
         self._connection_state = ConnectionState.closed
 
         self._firmware_name = None
         self._address = ""
         self._connection_text = ""
-        self.printersChanged.connect(self._onPrintersChanged)
-        Application.getInstance().getOutputDeviceManager().outputDevicesChanged.connect(self._updateUniqueConfigurations)
 
-    @pyqtProperty(str, notify = connectionTextChanged)
     def address(self):
         return self._address
 
     def setConnectionText(self, connection_text):
         if self._connection_text != connection_text:
             self._connection_text = connection_text
-            self.connectionTextChanged.emit()
 
-    @pyqtProperty(str, constant=True)
     def connectionText(self):
         return self._connection_text
-
-    def materialHotendChangedMessage(self, callback):
-        Logger.log("w", "materialHotendChangedMessage needs to be implemented, returning 'Yes'")
-        callback(QMessageBox.Yes)
 
     def isConnected(self):
         return self._connection_state != ConnectionState.closed and self._connection_state != ConnectionState.error
@@ -100,9 +64,7 @@ class PrinterOutputDevice(QObject, OutputDevice):
     def setConnectionState(self, connection_state):
         if self._connection_state != connection_state:
             self._connection_state = connection_state
-            self.connectionStateChanged.emit(self._id)
 
-    @pyqtProperty(str, notify = connectionStateChanged)
     def connectionState(self):
         return self._connection_state
 
@@ -119,87 +81,43 @@ class PrinterOutputDevice(QObject, OutputDevice):
     def requestWrite(self, nodes, file_name = None, filter_by_machine = False, file_handler = None, **kwargs):
         raise NotImplementedError("requestWrite needs to be implemented")
 
-    @pyqtProperty(QObject, notify = printersChanged)
     def activePrinter(self) -> Optional["PrinterOutputModel"]:
         if len(self._printers):
             return self._printers[0]
         return None
 
-    @pyqtProperty("QVariantList", notify = printersChanged)
     def printers(self):
         return self._printers
-
-    @pyqtProperty(QObject, constant=True)
-    def monitorItem(self):
-        # Note that we specifically only check if the monitor component is created.
-        # It could be that it failed to actually create the qml item! If we check if the item was created, it will try to
-        # create the item (and fail) every time.
-        if not self._monitor_component:
-            self._createMonitorViewFromQML()
-        return self._monitor_item
-
-    @pyqtProperty(QObject, constant=True)
-    def controlItem(self):
-        if not self._control_component:
-            self._createControlViewFromQML()
-        return self._control_item
-
-    def _createControlViewFromQML(self):
-        if not self._control_view_qml_path:
-            return
-        if self._control_item is None:
-            self._control_item = Application.getInstance().createQmlComponent(self._control_view_qml_path, {"OutputDevice": self})
-
-    def _createMonitorViewFromQML(self):
-        if not self._monitor_view_qml_path:
-            return
-
-        if self._monitor_item is None:
-            self._monitor_item = Application.getInstance().createQmlComponent(self._monitor_view_qml_path, {"OutputDevice": self})
 
     ##  Attempt to establish connection
     def connect(self):
         self.setConnectionState(ConnectionState.connecting)
-        self._update_timer.start()
 
     ##  Attempt to close the connection
     def close(self):
-        self._update_timer.stop()
         self.setConnectionState(ConnectionState.closed)
 
     ##  Ensure that close gets called when object is destroyed
     def __del__(self):
         self.close()
 
-    @pyqtProperty(bool, notify=acceptsCommandsChanged)
     def acceptsCommands(self):
         return self._accepts_commands
-
-    @deprecated("Please use the protected function instead", "3.2")
-    def setAcceptsCommands(self, accepts_commands):
-        self._setAcceptsCommands(accepts_commands)
 
     ##  Set a flag to signal the UI that the printer is not (yet) ready to receive commands
     def _setAcceptsCommands(self, accepts_commands):
         if self._accepts_commands != accepts_commands:
             self._accepts_commands = accepts_commands
 
-            self.acceptsCommandsChanged.emit()
-
     # Returns the unique configurations of the printers within this output device
-    @pyqtProperty("QVariantList", notify = uniqueConfigurationsChanged)
     def uniqueConfigurations(self):
         return self._unique_configurations
 
     def _updateUniqueConfigurations(self):
         self._unique_configurations = list(set([printer.printerConfiguration for printer in self._printers if printer.printerConfiguration is not None]))
         self._unique_configurations.sort(key = lambda k: k.printerType)
-        self.uniqueConfigurationsChanged.emit()
 
     def _onPrintersChanged(self):
-        for printer in self._printers:
-            printer.configurationChanged.connect(self._updateUniqueConfigurations)
-
         # At this point there may be non-updated configurations
         self._updateUniqueConfigurations()
 

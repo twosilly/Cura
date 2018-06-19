@@ -1,19 +1,19 @@
 # Copyright (c) 2018 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
-from typing import List
-
-from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
-from UM.Logger import Logger
-from UM.Math.Polygon import Polygon
-from UM.Math.Vector import Vector
-from UM.Scene.SceneNode import SceneNode
-from cura.Arranging.ShapeArray import ShapeArray
-from cura.Scene import ZOffsetDecorator
 
 from collections import namedtuple
+import copy
 
 import numpy
-import copy
+
+from UM.Logging.Logger import Logger
+from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
+from UM.Scene.SceneNode import SceneNode
+from UM.Math.Polygon import Polygon
+from UM.Math.Vector import Vector
+
+from cura.Arranging.ShapeArray import ShapeArray
+from cura.Scene.ZOffsetDecorator import ZOffsetDecorator
 
 
 ##  Return object for  bestSpot
@@ -96,7 +96,7 @@ class Arrange:
         self._last_priority = best_spot.priority
 
         # Ensure that the object is above the build platform
-        node.removeDecorator(ZOffsetDecorator.ZOffsetDecorator)
+        node.removeDecorator(ZOffsetDecorator)
         if node.getBoundingBox():
             center_y = node.getWorldPosition().y - node.getBoundingBox().bottom
         else:

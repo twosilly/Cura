@@ -4,7 +4,7 @@
 import configparser #To read config files.
 import io #To output config files to string.
 
-import UM.VersionUpgrade #To indicate that a file is of the wrong format.
+import UM.VersionUpdate.PerFileVersionUpgrade  #To indicate that a file is of the wrong format.
 
 ##  Creates a new preferences instance by parsing a serialised preferences file
 #   in version 1 of the file format.

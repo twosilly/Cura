@@ -4,8 +4,7 @@
 import configparser #To parse the files we need to upgrade and write the new files.
 import io #To serialise configparser output to a string.
 
-from UM.VersionUpgrade import VersionUpgrade
-from cura.CuraApplication import CuraApplication
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade
 
 # a dict of renamed quality profiles:  <old_id> : <new_id>
 _renamed_quality_profiles = {

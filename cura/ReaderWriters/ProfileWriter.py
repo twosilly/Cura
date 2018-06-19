@@ -1,17 +1,11 @@
 # Copyright (c) 2015 Ultimaker B.V.
 # Uranium is released under the terms of the LGPLv3 or higher.
 
-from UM.PluginObject import PluginObject
 
 ##  Base class for profile writer plugins.
 #
 #   This class defines a write() function to write profiles to files with.
-class ProfileWriter(PluginObject):
-    ##  Initialises the profile writer.
-    #
-    #   This currently doesn't do anything since the writer is basically static.
-    def __init__(self):
-        super().__init__()
+class ProfileWriter:
 
     ##  Writes a profile to the specified file path.
     #

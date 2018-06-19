@@ -2,7 +2,7 @@
 # Cura is released under the terms of the LGPLv3 or higher.
 
 from UM.Job import Job
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 from .avr_isp.stk500v2 import Stk500v2
 

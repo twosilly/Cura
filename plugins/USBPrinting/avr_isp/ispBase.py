@@ -8,7 +8,7 @@ The ISP AVR programmer can load firmware into AVR chips. Which are commonly used
 """
 
 from . import chipDB
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 
 class IspBase():
     """

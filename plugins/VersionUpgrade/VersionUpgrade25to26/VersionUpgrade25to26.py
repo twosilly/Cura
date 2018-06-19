@@ -7,7 +7,7 @@ import os
 from urllib.parse import quote_plus
 
 from UM.Resources import Resources
-from UM.VersionUpgrade import VersionUpgrade
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade
 
 from cura.CuraApplication import CuraApplication
 

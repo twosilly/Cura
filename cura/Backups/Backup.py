@@ -10,9 +10,9 @@ from typing import Optional
 from zipfile import ZipFile, ZIP_DEFLATED, BadZipfile
 
 from UM import i18nCatalog
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Message import Message
-from UM.Platform import Platform
+from UM.OS import OS
 from UM.Resources import Resources
 from cura.CuraApplication import CuraApplication
 
@@ -44,7 +44,7 @@ class Backup:
 
         # We copy the preferences file to the user data directory in Linux as it's in a different location there.
         # When restoring a backup on Linux, we move it back.
-        if Platform.isLinux():
+        if OS.isLinux():
             preferences_file_name = CuraApplication.getInstance().getApplicationName()
             preferences_file = Resources.getPath(Resources.Preferences, "{}.cfg".format(preferences_file_name))
             backup_preferences_file = os.path.join(version_data_dir, "{}.cfg".format(preferences_file_name))
@@ -124,7 +124,7 @@ class Backup:
         extracted = self._extractArchive(archive, version_data_dir)
 
         # Under Linux, preferences are stored elsewhere, so we copy the file to there.
-        if Platform.isLinux():
+        if OS.isLinux():
             preferences_file_name = CuraApplication.getInstance().getApplicationName()
             preferences_file = Resources.getPath(Resources.Preferences, "{}.cfg".format(preferences_file_name))
             backup_preferences_file = os.path.join(version_data_dir, "{}.cfg".format(preferences_file_name))

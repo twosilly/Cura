@@ -4,7 +4,7 @@
 import os.path
 
 from UM.Application import Application
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Message import Message
 from UM.FileHandler.WriteFileJob import WriteFileJob
 from UM.FileHandler.FileWriter import FileWriter #To check against the write modes (text vs. binary).

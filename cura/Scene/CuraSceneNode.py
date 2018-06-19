@@ -26,15 +26,15 @@ class CuraSceneNode(SceneNode):
         return self._outside_buildarea or self.callDecoration("getBuildPlateNumber") < 0
 
     def isVisible(self):
-        return super().isVisible() and self.callDecoration("getBuildPlateNumber") == Application.getInstance().getMultiBuildPlateModel().activeBuildPlate
+        return super().isVisible()
 
     def isSelectable(self) -> bool:
-        return super().isSelectable() and self.callDecoration("getBuildPlateNumber") == Application.getInstance().getMultiBuildPlateModel().activeBuildPlate
+        return super().isSelectable()
 
     ##  Get the extruder used to print this node. If there is no active node, then the extruder in position zero is returned
     #   TODO The best way to do it is by adding the setActiveExtruder decorator to every node when is loaded
     def getPrintingExtruder(self):
-        global_container_stack = Application.getInstance().getGlobalContainerStack()
+        global_container_stack = Application.getInstance().getMachineManager().getActiveMachine().global_stack
         per_mesh_stack = self.callDecoration("getStack")
         extruders = list(global_container_stack.extruders.values())
 

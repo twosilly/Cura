@@ -2,7 +2,7 @@
 # Uranium is released under the terms of the LGPLv3 or higher.
 import sys
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 try:
     from . import ThreeMFWriter
 except ImportError:
@@ -10,13 +10,13 @@ except ImportError:
 from . import ThreeMFWorkspaceWriter
 
 from UM.i18n import i18nCatalog
-from UM.Platform import Platform
+from UM.OS import OS
 
 i18n_catalog = i18nCatalog("uranium")
 
 def getMetaData():
     # Workarround for osx not supporting double file extensions correctly.
-    if Platform.isOSX():
+    if OS.isOSX():
         workspace_extension = "3mf"
     else:
         workspace_extension = "curaproject.3mf"

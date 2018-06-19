@@ -4,7 +4,7 @@
 import configparser
 import io
 
-from UM.VersionUpgrade import VersionUpgrade
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade
 
 
 ##  Upgrades configurations from the state they were in at version 3.4 to the

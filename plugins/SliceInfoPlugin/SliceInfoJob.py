@@ -1,8 +1,8 @@
 # Copyright (c) 2017 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 from UM.Job import Job
-from UM.Logger import Logger
-from UM.Platform import Platform
+from UM.Logging.Logger import Logger
+from UM.OS import OS
 
 import ssl
 import urllib.request
@@ -23,7 +23,7 @@ class SliceInfoJob(Job):
         # Submit data
         kwoptions = {"data" : self._data, "timeout" : 5}
 
-        if Platform.isOSX():
+        if OS.isOSX():
             kwoptions["context"] = ssl._create_unverified_context()
 
         Logger.log("i", "Sending anonymous slice info to [%s]...", self._url)

@@ -3,7 +3,7 @@
 
 import configparser #To get version numbers from config files.
 
-from UM.VersionUpgrade import VersionUpgrade # Superclass of the plugin.
+from UM.VersionUpdate.PerFileVersionUpgrade import VersionUpgrade # Superclass of the plugin.
 
 from . import MachineInstance # To upgrade machine instances.
 from . import Preferences #To upgrade preferences.
