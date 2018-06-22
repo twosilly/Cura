@@ -8,14 +8,14 @@ msgstr ""
 "Project-Id-Version: Cura 3.4\n"
 "Report-Msgid-Bugs-To: r.dulek@ultimaker.com\n"
 "POT-Creation-Date: 2018-03-29 08:36+0200\n"
-"PO-Revision-Date: 2018-04-11 14:40+0100\n"
+"PO-Revision-Date: 2018-06-22 11:44+0800\n"
 "Last-Translator: Bothof <info@bothof.nl>\n"
 "Language-Team: PCDotFan <pc@edu.ax>, Bothof <info@bothof.nl>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.7.3\n"
+"X-Generator: Poedit 1.8.13\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #: fdmprinter.def.json
@@ -1089,7 +1089,7 @@ msgstr "优化壁打印顺序"
 #: fdmprinter.def.json
 msgctxt "optimize_wall_printing_order description"
 msgid "Optimize the order in which walls are printed so as to reduce the number of retractions and the distance travelled. Most parts will benefit from this being enabled but some may actually take longer so please compare the print time estimates with and without optimization. First layer is not optimized when choosing brim as build plate adhesion type."
-msgstr ""
+msgstr "优化墙壁印刷的顺序，以减少回撤的数量和旅行的距离。大多数部件会从启用这个功能中受益，但有些可能会花费更长的时间，所以请将打印时间估算与不优化进行比较。第一层在选择边缘作为构建板附着力类型时没有进行优化。"
 
 #: fdmprinter.def.json
 msgctxt "outer_inset_first label"
@@ -1679,22 +1679,22 @@ msgstr "不要生成小于此面积的填充区域（使用皮肤取代）。"
 #: fdmprinter.def.json
 msgctxt "infill_support_enabled label"
 msgid "Infill Support"
-msgstr ""
+msgstr "填充支撑"
 
 #: fdmprinter.def.json
 msgctxt "infill_support_enabled description"
 msgid "Print infill structures only where tops of the model should be supported. Enabling this reduces print time and material usage, but leads to ununiform object strength."
-msgstr ""
+msgstr "只在模型的顶部支持打印填充结构。这样可以减少打印时间和材料的使用，但是会导致不一致的对象强度。"
 
 #: fdmprinter.def.json
 msgctxt "infill_support_angle label"
 msgid "Infill Overhang Angle"
-msgstr ""
+msgstr "填充悬垂角"
 
 #: fdmprinter.def.json
 msgctxt "infill_support_angle description"
 msgid "The minimum angle of internal overhangs for which infill is added. At a value of 0° objects are totally filled with infill, 90° will not provide any infill."
-msgstr ""
+msgstr "添加内填充的内部覆盖的最小角度。在一个0的值中，完全填满了填充，90将不提供任何填充。"
 
 #: fdmprinter.def.json
 msgctxt "skin_preshrink label"
@@ -2039,12 +2039,12 @@ msgstr "执行最大回抽计数的范围。 该值应与回抽距离大致相�
 #: fdmprinter.def.json
 msgctxt "limit_support_retractions label"
 msgid "Limit Support Retractions"
-msgstr ""
+msgstr "支撑限制被撤销"
 
 #: fdmprinter.def.json
 msgctxt "limit_support_retractions description"
 msgid "Omit retraction when moving from support to support in a straight line. Enabling this setting saves print time, but can lead to excesive stringing within the support structure."
-msgstr ""
+msgstr "当从支撑移动到支撑直线时，省略撤回。启用这个设置可以节省打印时间，但是可以在支撑结构中产生出色的字符串。"
 
 #: fdmprinter.def.json
 msgctxt "material_standby_temperature label"
@@ -2739,17 +2739,17 @@ msgstr "所有"
 #: fdmprinter.def.json
 msgctxt "retraction_combing option noskin"
 msgid "Not in Skin"
-msgstr ""
+msgstr "除了皮肤"
 
 #: fdmprinter.def.json
 msgctxt "retraction_combing_max_distance label"
 msgid "Max Comb Distance With No Retract"
-msgstr ""
+msgstr "最大梳距，无收缩"
 
 #: fdmprinter.def.json
 msgctxt "retraction_combing_max_distance description"
 msgid "When non-zero, combing travel moves that are longer than this distance will use retraction."
-msgstr ""
+msgstr "当非零的时候，梳理比这段距离更长的旅行移动将会使用撤回。"
 
 #: fdmprinter.def.json
 msgctxt "travel_retract_before_outer_wall label"
@@ -2774,12 +2774,12 @@ msgstr "喷嘴会在空驶时避开已打印的部分。 此选项仅在启用�
 #: fdmprinter.def.json
 msgctxt "travel_avoid_supports label"
 msgid "Avoid Supports When Traveling"
-msgstr ""
+msgstr "避免移动时支撑"
 
 #: fdmprinter.def.json
 msgctxt "travel_avoid_supports description"
 msgid "The nozzle avoids already printed supports when traveling. This option is only available when combing is enabled."
-msgstr ""
+msgstr "在空走时，喷嘴避免了已打印的支撑。只有在启用了梳理时才可以使用此选项。"
 
 #: fdmprinter.def.json
 msgctxt "travel_avoid_distance label"
@@ -3139,12 +3139,12 @@ msgstr "交叉"
 #: fdmprinter.def.json
 msgctxt "support_wall_count label"
 msgid "Support Wall Line Count"
-msgstr ""
+msgstr "支撑墙行数"
 
 #: fdmprinter.def.json
 msgctxt "support_wall_count description"
 msgid "The number of walls with which to surround support infill. Adding a wall can make support print more reliably and can support overhangs better, but increases print time and material used."
-msgstr ""
+msgstr "包围支撑的墙的数量。添加一堵墙可以使支持打印更加可靠，并且可以更好地支持挂起，但增加了打印时间和使用的材料。"
 
 #: fdmprinter.def.json
 msgctxt "zig_zaggify_support label"
@@ -4678,12 +4678,12 @@ msgstr "走线部分在切片后的最小尺寸。如果提高此值，网格的
 #: fdmprinter.def.json
 msgctxt "meshfix_maximum_travel_resolution label"
 msgid "Maximum Travel Resolution"
-msgstr ""
+msgstr "空走的最大分辨率"
 
 #: fdmprinter.def.json
 msgctxt "meshfix_maximum_travel_resolution description"
 msgid "The minimum size of a travel line segment after slicing. If you increase this, the travel moves will have less smooth corners. This may allow the printer to keep up with the speed it has to process g-code, but it may cause model avoidance to become less accurate."
-msgstr ""
+msgstr "切片后的旅行线路段的最小尺寸。如果你增加了这个，旅行的移动就会变得不那么平滑了。这可能使打印机能够跟上它处理g代码的速度，但是它可能导致模型的避免变得不那么准确。"
 
 #: fdmprinter.def.json
 msgctxt "support_skip_some_zags label"
@@ -4848,22 +4848,22 @@ msgstr "交叉 3D 图案的四向交叉处的气槽大小，高度为图案与�
 #: fdmprinter.def.json
 msgctxt "cross_infill_density_image label"
 msgid "Cross Infill Density Image"
-msgstr ""
+msgstr "交叉加密图像密度"
 
 #: fdmprinter.def.json
 msgctxt "cross_infill_density_image description"
 msgid "The file location of an image of which the brightness values determine the minimal density at the corresponding location in the infill of the print."
-msgstr ""
+msgstr "在打印的填充中，亮度值决定了相应位置的最小密度的图像的文件位置。"
 
 #: fdmprinter.def.json
 msgctxt "cross_support_density_image label"
 msgid "Cross Fill Density Image for Support"
-msgstr ""
+msgstr "交叉填充密度图象"
 
 #: fdmprinter.def.json
 msgctxt "cross_support_density_image description"
 msgid "The file location of an image of which the brightness values determine the minimal density at the corresponding location in the support."
-msgstr ""
+msgstr "一个图像的文件位置，在这个图像中，亮度值决定了在支持中相应位置的最小密度。"
 
 #: fdmprinter.def.json
 msgctxt "spaghetti_infill_enabled label"
@@ -5302,7 +5302,7 @@ msgstr "自适应图层最大变化"
 #: fdmprinter.def.json
 msgctxt "adaptive_layer_height_variation description"
 msgid "The maximum allowed height different from the base layer height."
-msgstr ""
+msgstr "最大允许高度与基层高度不同。"
 
 #: fdmprinter.def.json
 msgctxt "adaptive_layer_height_variation_step label"
@@ -5537,7 +5537,7 @@ msgstr "未从 Cura 前端调用 CuraEngine 时使用的设置。"
 #: fdmprinter.def.json
 msgctxt "center_object label"
 msgid "Center Object"
-msgstr ""
+msgstr "中心点"
 
 #: fdmprinter.def.json
 msgctxt "center_object description"
@@ -5547,7 +5547,7 @@ msgstr "是否将模型放置在打印平台中心 (0,0)，而不是使用模型
 #: fdmprinter.def.json
 msgctxt "mesh_position_x label"
 msgid "Mesh Position X"
-msgstr ""
+msgstr "网格X位置"
 
 #: fdmprinter.def.json
 msgctxt "mesh_position_x description"
@@ -5557,7 +5557,7 @@ msgstr "应用在模型 x 方向上的偏移量。"
 #: fdmprinter.def.json
 msgctxt "mesh_position_y label"
 msgid "Mesh Position Y"
-msgstr ""
+msgstr "网格Y位置"
 
 #: fdmprinter.def.json
 msgctxt "mesh_position_y description"
@@ -5567,7 +5567,7 @@ msgstr "应用在模型 y 方向上的偏移量。"
 #: fdmprinter.def.json
 msgctxt "mesh_position_z label"
 msgid "Mesh Position Z"
-msgstr ""
+msgstr "网格Z位置"
 
 #: fdmprinter.def.json
 msgctxt "mesh_position_z description"
